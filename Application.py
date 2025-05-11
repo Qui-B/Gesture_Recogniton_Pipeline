@@ -38,8 +38,9 @@ def main() -> None:
                 cur_frame = lm_capturer.capture()  # blocks until frame is read
                 feature_package: FeaturePackage = feature_extractor.extract(cur_frame)
                 with torch.no_grad():
-                    result_class = int(classificator(feature_package).item())
-                print("Classification Result: " + Gesture(result_class).name)
+                    result_t: torch.Tensor = classificator(feature_package)
+                    result_class = Gesture(torch.argmax(result_t, dim=1).item())
+                print("Classification Result is " + result_class.name + " Whole tensor: " + str(result_t))
             except UnsuccessfulCaptureException as e:
                 print(e.message)
             cv2.waitKey(1)  # DEBUG

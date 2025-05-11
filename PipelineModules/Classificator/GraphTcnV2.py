@@ -84,7 +84,7 @@ class GraphTcn(nn.Module):
         y1 = self.tcn2(y_pooled)
 
         y_linear = self.classifier(y1[:, :, -1])
-        return self.classifier_activation(y_linear)
+        return self.softmax(y_linear)
     #forward used for inference. Only newest spatial feature gets calculated. Others get reused fromm previous invocations. (frame-window)
     def forward(self, feature_pkg: FeaturePackage):
         spatial_t = self.extractSpatialFeatures(feature_pkg.lm_coordinates)
@@ -98,5 +98,5 @@ class GraphTcn(nn.Module):
         y1 = self.tcn2(y_pooled)
 
         y_linear = self.classifier(y1[:, :, -1])
-        return self.classifier_activation(y_linear)
+        return self.softmax(y_linear)
     """

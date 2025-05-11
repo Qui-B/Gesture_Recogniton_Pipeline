@@ -18,7 +18,7 @@ from Exceptions import WindowLengthException, UnsuccessfulCaptureException
 
 class TrainingSample(NamedTuple):
         feature_packages: list[FeaturePackage]
-        label: Gesture
+        label: torch.Tensor
 
 
 #Rewrite to fit the forward method
@@ -63,13 +63,19 @@ def extractTrainingData(training_Sample_path, graph_TCN, feature_extractor):
                 continue
             try:
                 feature_packages = extractWindowFromMP4(feature_extractor, graph_TCN, video_file)
-                training_sample = TrainingSample(feature_packages, cur_label)
-                label_samples.append(training_sample)
+                label_t = labelToTensor(cur_label)
+                cur_training_sample = TrainingSample(feature_packages, label_t)
+                label_samples.append(cur_training_sample)
             except WindowLengthException as e:
                 print(e.message)
         sample_dict[cur_label] = label_samples
 
     return sample_dict
+
+def labelToTensor(cur_label: Gesture):
+    output_t = torch.full((NUM_OUTPUT_CLASSES,) , -1, device=DEVICE) #No second dimension next to output classes to get a 1D tensor
+    output_t[cur_label.value] = 1
+    return output_t
 
 def ranElemsFromList(sample_list, num_elements):
     output_elems = []

@@ -23,6 +23,7 @@ class GraphTcn(nn.Module):
                 dropout)
 
         self.classifier = nn.Linear(num_channels_layer1[-1], output_size)
+        self.softmax = nn.Softmax(dim=1)
         self.init_weights()
 
     def init_weights(self):
@@ -45,6 +46,9 @@ class GraphTcn(nn.Module):
 
             self.window.update(spatial_feature_pkg)
             window_t = self.window.getAsTensor()
+            y0 = self.tcn(window_t)
+            y_linear = self.classifier(y0[:, :, -1])
+            return self.softmax(y_linear) #softmax output to allow a Confidence Setting
 
         else: #case: training
             for feature_pkg in feature_pkgs:
@@ -53,14 +57,12 @@ class GraphTcn(nn.Module):
 
                 self.window.update(spatial_feature_pkg)
             window_t = self.window.getAsTensor()
-
-        y0 = self.tcn(window_t)
-        y_linear = self.classifier(y0[:, :, -1])
-        predicted_class = torch.argmax(y_linear, dim=1)
-        return predicted_class
+            y0 = self.tcn(window_t)
+            return self.classifier(y0[:, :, -1]) #softmax happens later in the lossfunction (cross-entropy)
 
 
-    #Old implementation was to split both methods as it is more performant, but not as reliable in terms of trainingsusability.
+
+    #Old implementation was to split both methods as it is more performant, but has bad maintainability.
     """
     #forward used for training. All spatial features get calculated on the spot to allow better backpropagation through the gcn.
     #The forward methods are not combined to avoid un-necessary overhead during inference
@@ -76,7 +78,7 @@ class GraphTcn(nn.Module):
         y1 = self.tcn2(y_pooled)
 
         y_linear = self.classifier(y1[:, :, -1])
-        return self.classifier_activation(y_linear)
+        return self.softmax(y_linear)
     #forward used for inference. Only newest spatial feature gets calculated. Others get reused fromm previous invocations. (frame-window)
     def forward(self, feature_pkg: FeaturePackage):
         spatial_t = self.extractSpatialFeatures(feature_pkg.lm_coordinates)
@@ -90,5 +92,5 @@ class GraphTcn(nn.Module):
         y1 = self.tcn2(y_pooled)
 
         y_linear = self.classifier(y1[:, :, -1])
-        return self.classifier_activation(y_linear)
+        return self.softmax(y_linear)
     """
