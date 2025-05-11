@@ -1,38 +1,48 @@
 import cv2
-
+import torch
+from Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
+    KERNEL_SIZE, DROPOUT, DEVICE
+from Enums import Gesture
 from Exceptions import UnsuccessfulCaptureException
 from PipelineModules.Classificator.GraphTCN import GraphTcn
+from PipelineModules.DataClasses import SpatialFeaturePackage
 from PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
 from PipelineModules.LmCapturer import LmCapturer
-from PipelineModules.Classificator.WindowManager import WindowManager
 
 def main() -> None:
-    lm_capturer: LmCapturer = LmCapturer()
-    feature_extractor: FeatureExtractor = FeatureExtractor()
-    graph_tcn: GraphTcn = GraphTcn() #TODO fill in parameters
-    frame_delta = 1/lm_capturer.cap.get(cv2.CAP_PROP_FPS)
+        lm_capturer: LmCapturer = LmCapturer()
+        feature_extractor: FeatureExtractor = FeatureExtractor()
+        classificator: GraphTcn = GraphTcn(
+            input_size=INPUT_SIZE,
+            output_size=NUM_OUTPUT_CLASSES,
+            gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
+            num_channels_layer1=NUM_CHANNELS_LAYER1,
+            num_channels_layer2=NUM_CHANNELS_LAYER2,
+            kernel_size=KERNEL_SIZE,
+            dropout=DROPOUT
+        ).to(DEVICE)
+        #classificator.load_state_dict(torch.load("trained_model.pth"))
 
-    #Warm up until window is full
-    while len(graph_tcn.getSeq()) < 30:
-        cur_frame = lm_capturer.capture()
-        if cur_frame is not None:  # DEBUG
+        frame_delta = 1 / lm_capturer.cap.get(cv2.CAP_PROP_FPS)
+        # Warm up until frame_deque is full
+        while classificator.window.getLength() < 30:
+            cur_frame = lm_capturer.capture()
             feature_package = feature_extractor.extract(cur_frame)
-            graph_tcn.extractSpatialFeatures(feature_package.landmark_coordinates)
+            spatial_t = classificator.extractSpatialFeatures(feature_package.lm_coordinates) #manually fill window to avoid already running the tcn
+            spatial_feature_package: SpatialFeaturePackage = SpatialFeaturePackage(spatial_t, feature_package.hand_detected)
+            classificator.window.update(spatial_feature_package)
 
-
-    #Recogniton Phase
-    while True:
-        try:
-            cur_frame = lm_capturer.capture() #blocks until frame is read
-            if cur_frame is not None: #DEBUG
+        # Recogniton Phase
+        while True:
+            try:
+                cur_frame = lm_capturer.capture()  # blocks until frame is read
                 feature_package: FeaturePackage = feature_extractor.extract(cur_frame)
-                print(str(feature_package.landmark_coordinates))
-                #window_manager.update(feature_package)  windowmanager now included in the graph_tcn
-                #todo recognize gestures and trigger events
-        except UnsuccessfulCaptureException as e:
-            print(e.message)
-        cv2.waitKey(1) #DEBUG
-
+                with torch.no_grad():
+                    result_class = int(classificator(feature_package).item())
+                print("Classification Result: " + Gesture(result_class).name)
+            except UnsuccessfulCaptureException as e:
+                print(e.message)
+            cv2.waitKey(1)  # DEBUG
 
 if __name__ == '__main__':
     main()

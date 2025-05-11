@@ -1,4 +1,4 @@
-from Settings import WINDOW_LENGTH
+from Config import WINDOW_LENGTH
 
 
 class UnsuccessfulCaptureException(Exception):
@@ -13,7 +13,7 @@ class UnsuccessfulCaptureException(Exception):
 
 class WindowLengthException(Exception):
     """
-    Raised when the window-length differs from Setting.WINDOW_LENGTH
+    Raised when the frame_deque-length differs from Setting.WINDOW_LENGTH
     """
     def __init__(self, cur_window_length):
         self.cur_window_length = cur_window_length

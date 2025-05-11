@@ -1,24 +1,15 @@
+from dataclasses import dataclass
+from typing import NamedTuple
+
 import cv2
 import mediapipe as mp
 import numpy as np
 import torch
 
-from Settings import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
-    MIN_TRACKING_CONFIDENCE, FEATURE_VECTOR_LENGTH
+from Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
+    MIN_TRACKING_CONFIDENCE, FEATURE_VECTOR_LENGTH, DEVICE
+from PipelineModules.DataClasses import FeaturePackage
 
-HAND_DETECTED_ELEM = 1.0
-
-class FeaturePackage:
-    """
-    Dataclass used to store the features, which get extracted by the FeatureExtractor.
-
-    Fields:
-        landmark_coordinates (np.array 21*3): Holds the coordinates (x,y,z) for each landmark given from mediapipe
-        hand_detected_flag (integer): indicates if the hand was detected (1) or not (0)
-    """
-    def __init__(self, landmark_coordinates, hand_detected_flag):
-        self.landmark_coordinates = landmark_coordinates
-        self.hand_detected_flag = hand_detected_flag #integer flag
 
 class FeatureExtractor:
     """
@@ -66,7 +57,7 @@ class FeatureExtractor:
             feature-package (object): Contains an array (21*3) for storing the landmarks and an extra field indicating if a hand got detected.
         """
         landmark_coordinates = np.zeros((21,3))
-        hand_detected_flag = 0
+        hand_detected = False
 
         mp_result = self.mp.process(RGB_frame)
 
@@ -75,9 +66,9 @@ class FeatureExtractor:
             for index, landmark in enumerate(landmarks):
                 landmark_coordinates[index] = [landmark.x, landmark.y, landmark.z]
 
-            hand_detected_flag = HAND_DETECTED_ELEM
+            hand_detected = True
 
         relative_landmark_vector = self.calcRelativeVector(landmark_coordinates)
-        feature_package = FeaturePackage(torch.tensor(relative_landmark_vector, dtype=torch.float32), hand_detected_flag)
+        feature_package = FeaturePackage(torch.tensor(relative_landmark_vector, dtype=torch.float32, device=DEVICE), hand_detected)
         return feature_package
 

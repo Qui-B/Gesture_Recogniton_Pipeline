@@ -16,13 +16,21 @@ class GraphTcn(nn.Module):
 
         self.gcn = GCNConv(FEATURE_VECTOR_WIDTH, gcn_output_channels)
 
-        self.tcn = TemporalConvNet(
+        self.tcn = nn.Sequential(
+            TemporalConvNet(
                 input_size,
                 num_channels_layer1,
                 kernel_size,
+                dropout),
+            nn.MaxPool1d(kernel_size=2, stride=POOLSTRIDE),
+            TemporalConvNet(
+                int(num_channels_layer1[-1] / POOLSTRIDE),
+                num_channels_layer2,
+                kernel_size,
                 dropout)
+        )
 
-        self.classifier = nn.Linear(num_channels_layer1[-1], output_size)
+        self.classifier = nn.Linear(num_channels_layer2[-1], output_size)
         self.init_weights()
 
     def init_weights(self):

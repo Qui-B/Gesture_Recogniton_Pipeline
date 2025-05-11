@@ -1,0 +1,66 @@
+from torch import torch,nn
+
+#Collection of all setting-parameters used by the pipeline modules
+
+#===========================
+#LmCapturer
+#===========================
+IMAGE_SOURCE = 0 #'http://10.0.0.170:4747/video' #0 to use the local webcam
+IMAGE_WIDTH = 500
+IMAGE_HEIGHT = 600
+FPS = 30 #Recommended 30 Frames. If below use 0 to unlock the framerate
+
+#===========================
+#LmExtractor
+#===========================
+STATIC_IMAGE_MODE = False
+MAX_NUM_HANDS = 2
+MIN_DETECTION_CONFIDENCE = 0.5
+MIN_TRACKING_CONFIDENCE = 0.5
+FEATURE_VECTOR_LENGTH = 21 #number of landmarks
+FEATURE_VECTOR_WIDTH = 3 #number of coordinates per landmark
+
+#===========================
+#FrameWindow
+#===========================
+WINDOW_LENGTH = 31
+
+#===========================
+#Classificator
+#===========================
+#FEATURE_VECTOR_LENGTH and WINDOW_LENGTH also get used for input_size
+KERNEL_SIZE = 3
+NUM_OUTPUT_CLASSES = 7 #scroll up/down, swipe left/right, zoom in/out, nothing
+GCN_NUM_OUTPUT_CHANNELS = 12
+INPUT_SIZE = FEATURE_VECTOR_LENGTH * GCN_NUM_OUTPUT_CHANNELS + 1 #+1 because of the HAND_DETECTED feature
+DROPOUT = 0
+DEVICE = 'cuda:0'
+
+#Channels for the tcn layers
+NUM_CHANNELS_LAYER1 = [WINDOW_LENGTH,WINDOW_LENGTH,WINDOW_LENGTH,WINDOW_LENGTH] #4 Layers because it allows us to get a receptive window of 31
+NUM_CHANNELS_LAYER2 = [16,16,16,16]
+POOLSTRIDE = 2
+
+
+#Edge index for the gcn layer
+EDGE_INDEX = torch.tensor([
+#Palm          #Thumb        #Index-f   #Middle-f   #Ring-f     #Pinky
+[0,5,9,13,17,  0, 1, 2, 3,   5, 6, 7,   9,10,11,    13,14,15,   17,18,19],
+[5,9,13,17,0,  1, 2, 3, 4,   6, 7, 8,   10,11,12,   14,15,16,   18,19,20]
+], dtype=torch.long, device=DEVICE) #long requested by gcn
+
+#===========================
+#Classficator Training
+#===========================
+BATCH_SIZE = 1 #Currently the system only supports a batch size of 1
+GESTURE_SAMPLE_PATH = r'D:\Arbeit\_Studium (Derzeit)\bsc\Src\Trainingsamples' #Parentfolder of the training-samples for the network
+LOSS_FUNCTION = nn.CrossEntropyLoss()
+LEARNING_RATE = 0.001
+NUM_EPOCHS = 3
+REL_PORTION_FOR_VALIDATION = 0.15
+REL_PORTION_FOR_TESTING = 0.15
+
+#============================
+#Unit-testing
+#============================
+SAMPLE_PICTURE_PATH = r'D:\Arbeit\_Studium (Derzeit)\bsc\Src\Hand_Recognition\Tests\TestImage.jpg'
