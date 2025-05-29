@@ -1,7 +1,7 @@
 import cv2
 
-from Exceptions import UnsuccessfulCaptureException
 from Config import IMAGE_SOURCE, FPS
+from Utility.Exceptions import UnsuccessfulCaptureException
 
 
 class LmCapturer:
@@ -12,7 +12,7 @@ class LmCapturer:
         self.frame_count = 0  # DEBUG
 
         # set camera and frame dimensions
-        self.cap = cv2.VideoCapture(image_source)
+        self.cap = cv2.VideoCapture(image_source, cv2.CAP_DSHOW) #cv2.CAP_DSHOW: flag for forcing DirectShow backend (less start up time)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 600)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 500)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 0)
@@ -39,8 +39,8 @@ class LmCapturer:
 
         if not successful_read or frame is None:
             raise UnsuccessfulCaptureException(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        #cv2.imshow(IMAGE_SOURCE, frame)
-        #cv2.waitKey(1)
+        cv2.imshow("debug window", frame)
+        cv2.waitKey(1)
         RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # RGB colorscheme needed for landMarc extraction
         return RGB_frame
 

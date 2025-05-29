@@ -1,14 +1,11 @@
-from dataclasses import dataclass
-from typing import NamedTuple
-
 import cv2
 import mediapipe as mp
 import numpy as np
 import torch
 
 from Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
-    MIN_TRACKING_CONFIDENCE, FEATURE_VECTOR_LENGTH, DEVICE
-from PipelineModules.DataClasses import FeaturePackage
+    MIN_TRACKING_CONFIDENCE, DEVICE
+from Utility.Dataclasses import FeaturePackage
 
 
 class FeatureExtractor:
@@ -20,6 +17,8 @@ class FeatureExtractor:
         self.lastFrame = None
 
         #mediapipe setup
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_hands = mp.solutions.hands
         self.mp = mp.solutions.hands.Hands(
             static_image_mode=STATIC_IMAGE_MODE,
             max_num_hands=MAX_NUM_HANDS,
@@ -44,6 +43,12 @@ class FeatureExtractor:
         self.lastFrame = landmark_vector
         return relative_landmark_vector
 
+    def sharpen_frame(self,frame):
+        kernel = np.array([[0, -1, 0],
+                           [-1, 5, -1],
+                           [0, -1, 0]])
+        return cv2.filter2D(frame, -1, kernel)
+
 
     def extract(self, RGB_frame):
         """
@@ -59,14 +64,18 @@ class FeatureExtractor:
         landmark_coordinates = np.zeros((21,3))
         hand_detected = False
 
-        mp_result = self.mp.process(RGB_frame)
+        sharpened_frame = self.sharpen_frame(RGB_frame)
+        mp_result = self.mp.process(sharpened_frame)
 
         if mp_result.multi_hand_landmarks: #case: hand detected
             landmarks = mp_result.multi_hand_landmarks[0].landmark
             for index, landmark in enumerate(landmarks):
                 landmark_coordinates[index] = [landmark.x, landmark.y, landmark.z]
-
+            self.mp_drawing.draw_landmarks(RGB_frame, mp_result.multi_hand_landmarks[0], self.mp_hands.HAND_CONNECTIONS)
             hand_detected = True
+
+        cv2.imshow("Debug Frame",RGB_frame)
+        cv2.waitKey(30)
 
         relative_landmark_vector = self.calcRelativeVector(landmark_coordinates)
         feature_package = FeaturePackage(torch.tensor(relative_landmark_vector, dtype=torch.float32, device=DEVICE), hand_detected)

@@ -26,7 +26,7 @@ print("\nResult of rel_vector_2 - rel_vector_3:")
 print(printNPArray(result_2))
 """
 from Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
-    KERNEL_SIZE, DROPOUT
+    KERNEL_SIZE, DROPOUT, SAMPLE_PICTURE_PATH
 from PipelineModules.Classificator.GraphTCN import GraphTcn
 
 """
@@ -90,3 +90,72 @@ classificator.to(device)
 # Check if the model is on the correct device
 print("Model is on device:", next(classificator.parameters()).device)
 """
+"""
+import cv2
+from pygrabber.dshow_graph import FilterGraph
+
+graph = FilterGraph()
+devices = graph.get_input_devices()
+
+print("Available camera devices:")
+for index, name in enumerate(devices):
+    print(f"{index}: {name}")
+# Change this to your video file path or camera index (e.g. 0 for default webcam)
+VIDEO_SOURCE = 0
+
+def test_capture(video_source):
+    cap = cv2.VideoCapture(video_source, cv2.CAP_DSHOW)
+    if not cap.isOpened():
+        print(f"Error: Cannot open video source {video_source}")
+        return
+
+    print(f"Opened video source {video_source} successfully")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret or frame is None:
+            print("Failed to grab frame")
+            break
+
+        print(f"Frame shape: {frame.shape}, dtype: {frame.dtype}")
+
+        cv2.imshow("Raw Frame", frame)
+
+        # Exit on 'q' key
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    test_capture(VIDEO_SOURCE)"""
+
+import cv2
+import numpy as np
+
+def sharpen_image(img):
+    """Applies a sharpening filter to the image."""
+    kernel = np.array([[0, -1, 0],
+                       [-1, 6, -1],
+                       [0, -1, 0]])
+    sharpened = cv2.filter2D(img, -1, kernel)
+    return sharpened
+
+
+image = cv2.imread(SAMPLE_PICTURE_PATH)
+
+if image is None:
+    print("Failed to load image. Check the path.")
+    exit()
+
+
+sharpened = sharpen_image(image)
+
+
+combined = np.hstack((image, sharpened))
+
+
+cv2.imshow('Original (Left) vs Sharpened (Right)', combined)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

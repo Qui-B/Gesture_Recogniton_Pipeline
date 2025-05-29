@@ -2,10 +2,10 @@ import cv2
 import torch
 from Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
     KERNEL_SIZE, DROPOUT, DEVICE
-from Enums import Gesture
-from Exceptions import UnsuccessfulCaptureException
+from Utility.Enums import Gesture
+from Utility.Exceptions import UnsuccessfulCaptureException
 from PipelineModules.Classificator.GraphTCN import GraphTcn
-from PipelineModules.DataClasses import SpatialFeaturePackage
+from Utility.DataClasses import SpatialFeaturePackage
 from PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
 from PipelineModules.LmCapturer import LmCapturer
 
@@ -21,9 +21,8 @@ def main() -> None:
             kernel_size=KERNEL_SIZE,
             dropout=DROPOUT
         ).to(DEVICE)
-        #classificator.load_state_dict(torch.load("trained_model.pth"))
+        classificator.load_state_dict(torch.load("PipelineModules/Classificator/trained_model.pth"))
 
-        frame_delta = 1 / lm_capturer.cap.get(cv2.CAP_PROP_FPS)
         # Warm up until frame_deque is full
         while classificator.window.getLength() < 30:
             cur_frame = lm_capturer.capture()
@@ -37,10 +36,18 @@ def main() -> None:
             try:
                 cur_frame = lm_capturer.capture()  # blocks until frame is read
                 feature_package: FeaturePackage = feature_extractor.extract(cur_frame)
+                if feature_package.hand_detected:
+                    print("Hand detected")
+
                 with torch.no_grad():
+
                     result_t: torch.Tensor = classificator(feature_package)
-                    result_class = Gesture(torch.argmax(result_t, dim=1).item())
-                print("Classification Result is " + result_class.name + " Whole tensor: " + str(result_t))
+                    result_val, result_class = torch.max(result_t, dim=1)
+                    result_class = Gesture(result_class.item())
+                    if result_class is not Gesture.Nothing and result_val > 0.9:
+                        print("Classification Result is " + result_class.name)
+                        print("Tensor: " + str(result_t))
+                        print("")
             except UnsuccessfulCaptureException as e:
                 print(e.message)
             cv2.waitKey(1)  # DEBUG

@@ -1,12 +1,10 @@
 
 from collections import deque
-import numpy as np
 import torch
 
-from DebugUtil import printLandMarkCoordinate, printTensor
 #from Hand_Recognition.DebugUtil import printAverageDirectionChange, printLandMarkCoordinate
-from Config import WINDOW_LENGTH, FEATURE_VECTOR_LENGTH, FEATURE_VECTOR_WIDTH, GCN_NUM_OUTPUT_CHANNELS, DEVICE
-from PipelineModules.DataClasses import SpatialFeaturePackage
+from Config import WINDOW_LENGTH, FEATURE_VECTOR_LENGTH, GCN_NUM_OUTPUT_CHANNELS, DEVICE
+from Utility.Dataclasses import SpatialFeaturePackage
 
 
 #Most methods corresponding to FrameWindow are in GraphTcn because of the needed preprocessing before Windowupdates

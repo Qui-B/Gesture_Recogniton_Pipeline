@@ -1,5 +1,4 @@
 import unittest
-from collections import deque
 
 import cv2
 import torch
@@ -7,7 +6,7 @@ import torch
 from Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
     KERNEL_SIZE, DROPOUT, SAMPLE_PICTURE_PATH, BATCH_SIZE, WINDOW_LENGTH, DEVICE
 from PipelineModules.Classificator.GraphTCN import GraphTcn
-from PipelineModules.DataClasses import SpatialFeaturePackage
+from Util.DataClasses import SpatialFeaturePackage
 from PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
 
 

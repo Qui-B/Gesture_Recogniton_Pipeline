@@ -1,12 +1,10 @@
-from typing import Any
-
 from torch import torch,nn
 from torch_geometric.nn.conv import GCNConv
 
-from PipelineModules.Classificator.HelperClasses import TemporalConvNet
+from Util.HelperClasses import TemporalConvNet
 from PipelineModules.Classificator.FrameWindow import FrameWindow
-from PipelineModules.DataClasses import SpatialFeaturePackage, FeaturePackage
-from Config import EDGE_INDEX, FEATURE_VECTOR_WIDTH, FEATURE_VECTOR_LENGTH, POOLSTRIDE
+from Util.DataClasses import SpatialFeaturePackage
+from Config import EDGE_INDEX, FEATURE_VECTOR_WIDTH, POOLSTRIDE
 
 
 class GraphTcn(nn.Module):

@@ -1,6 +1,3 @@
-from Config import WINDOW_LENGTH
-
-
 class UnsuccessfulCaptureException(Exception):
     """
     Raised when the camera module could not capture a frame
@@ -15,7 +12,7 @@ class WindowLengthException(Exception):
     """
     Raised when the frame_deque-length differs from Setting.WINDOW_LENGTH
     """
-    def __init__(self, cur_window_length):
+    def __init__(self, cur_window_length, video_name):
         self.cur_window_length = cur_window_length
-        self.message = "Window-length ({cur_length}) differs from Setting.WINDOW_LENGTH ({settings_length})".format(cur_length=cur_window_length, settings_length=WINDOW_LENGTH)
+        self.message = "Window-length ({cur_length}) of Video: \"{video_name} \" differs from Setting.WINDOW_LENGTH ({settings_length})".format(video_name=video_name,cur_length=cur_window_length, settings_length=WINDOW_LENGTH)
         super().__init__(self.message)

@@ -5,9 +5,9 @@ from torch import torch,nn
 #===========================
 #LmCapturer
 #===========================
-IMAGE_SOURCE = 0 #'http://10.0.0.170:4747/video' #0 to use the local webcam
-IMAGE_WIDTH = 500
-IMAGE_HEIGHT = 600
+IMAGE_SOURCE = 1 #droid cam: 'http://10.0.0.170:4747/video'
+IMAGE_WIDTH = 1280
+IMAGE_HEIGHT = 720
 FPS = 30 #Recommended 30 Frames. If below use 0 to unlock the framerate
 
 #===========================
@@ -31,9 +31,9 @@ WINDOW_LENGTH = 31
 #FEATURE_VECTOR_LENGTH and WINDOW_LENGTH also get used for input_size
 KERNEL_SIZE = 3
 NUM_OUTPUT_CLASSES = 7 #scroll up/down, swipe left/right, zoom in/out, nothing
-GCN_NUM_OUTPUT_CHANNELS = 12
+GCN_NUM_OUTPUT_CHANNELS = 36
 INPUT_SIZE = FEATURE_VECTOR_LENGTH * GCN_NUM_OUTPUT_CHANNELS + 1 #+1 because of the HAND_DETECTED feature
-DROPOUT = 0
+DROPOUT = 0.1 #TESTING
 DEVICE = 'cuda:0'
 
 #Channels for the tcn layers
@@ -52,11 +52,11 @@ EDGE_INDEX = torch.tensor([
 #===========================
 #Classficator Training
 #===========================
-BATCH_SIZE = 1 #Currently the system only supports a batch size of 1
+BATCH_SIZE = 1 #for inference use BATCH_SIZE = 1
 GESTURE_SAMPLE_PATH = r'D:\Arbeit\_Studium (Derzeit)\bsc\Src\Trainingsamples' #Parentfolder of the training-samples for the network
 LOSS_FUNCTION = nn.CrossEntropyLoss()
 LEARNING_RATE = 0.001
-NUM_EPOCHS = 3
+NUM_EPOCHS = 35
 REL_PORTION_FOR_VALIDATION = 0.15
 REL_PORTION_FOR_TESTING = 0.15
 

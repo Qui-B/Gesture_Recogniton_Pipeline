@@ -1,5 +1,6 @@
+import os
 from typing import NamedTuple
-from PipelineModules.DataClasses import FeaturePackage, SpatialFeaturePackage
+
 import math
 import numpy as np
 from torch import torch, nn
@@ -7,14 +8,17 @@ from torch.utils.data import DataLoader, Dataset
 import cv2
 from pathlib import Path
 
-from Enums import Gesture
+
 from PipelineModules.Classificator.GraphTCN import GraphTcn
 from PipelineModules.FeatureExtractor import FeatureExtractor
 from Config import (WINDOW_LENGTH, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER2, NUM_CHANNELS_LAYER1,
-                    KERNEL_SIZE, GESTURE_SAMPLE_PATH, FEATURE_VECTOR_LENGTH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
+                    KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
                     GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE, REL_PORTION_FOR_VALIDATION, REL_PORTION_FOR_TESTING,
                     NUM_EPOCHS, DEVICE)
-from Exceptions import WindowLengthException, UnsuccessfulCaptureException
+from Utility.Dataclasses import FeaturePackage
+from Utility.Enums import Gesture
+from Utility.Exceptions import WindowLengthException, UnsuccessfulCaptureException
+
 
 class TrainingSample(NamedTuple):
         feature_packages: list[FeaturePackage]
@@ -25,10 +29,12 @@ class TrainingSample(NamedTuple):
 def extractWindowFromMP4(feature_extractor, graph_TCN: GraphTcn,  video_file):
     cap = cv2.VideoCapture(str(video_file))
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
+    vid_name = os.path.basename(video_file)
     if n_frames != WINDOW_LENGTH:
         cap.release()
-        raise WindowLengthException
+        raise WindowLengthException(n_frames, vid_name)
+    else:
+        print("Extracted: " + vid_name + " (" + str(n_frames) + "frames)") #DEBUG
 
     feature_packages = []
     for frame_ind in range(0,n_frames):
@@ -51,11 +57,12 @@ Returns:
 def extractTrainingData(training_Sample_path, graph_TCN, feature_extractor):
     path = Path(training_Sample_path)
     sample_dict = dict()
+    print("Extract Datasamples...")
 
     for folder in path.iterdir():
         if not folder.is_dir() or folder.name not in Gesture.__members__: #filter out subDirectories that are not corresponding to a gesture
             continue
-        print("folder: " + folder.name + " found")
+        print("Folder: \"" + folder.name + "\" found")
         cur_label = Gesture[folder.name] #frame_deque-label
         label_samples = []
         for video_file in folder.iterdir():
@@ -63,7 +70,7 @@ def extractTrainingData(training_Sample_path, graph_TCN, feature_extractor):
                 continue
             try:
                 feature_packages = extractWindowFromMP4(feature_extractor, graph_TCN, video_file)
-                label_t = labelToTensor(cur_label)
+                label_t = torch.tensor(cur_label.value, dtype=torch.long)
                 cur_training_sample = TrainingSample(feature_packages, label_t)
                 label_samples.append(cur_training_sample)
             except WindowLengthException as e:
@@ -102,9 +109,9 @@ def splitTrainingData(sample_dict):
         training_list.extend(cur_samples)
     print("\nDataset split:")
     print("==========================================")
-    print("{}% Test samples with length: ".format((REL_PORTION_FOR_TESTING * 100), len(validation_list)))
-    print("{}% Validation samples with length: ".format((REL_PORTION_FOR_VALIDATION*100), len(validation_list)))
-    print("{}% Training samples with length: ".format(((1-(REL_PORTION_FOR_TESTING+REL_PORTION_FOR_VALIDATION))*100), len(training_list)))
+    print("{}% Test samples with length: {}".format((REL_PORTION_FOR_TESTING * 100), len(validation_list)))
+    print("{}% Validation samples with length: {}".format((REL_PORTION_FOR_VALIDATION*100), len(validation_list)))
+    print("{}% Training samples with length: {}".format(((1-(REL_PORTION_FOR_TESTING+REL_PORTION_FOR_VALIDATION))*100), len(training_list)))
 
     return test_list,validation_list,training_list
 
@@ -118,6 +125,10 @@ class GestureDataset(Dataset):  #Wrapper class needed for using the dataloader
 
     def __getitem__(self, idx):
         return self.sample_list[idx]
+
+    @staticmethod
+    def collate_fn(batch): #needed to avoid batching Error with custom container-datatype (Trainingsample)
+        return batch
 
 """
 #Check if pc has a GPU on board to speed up the training process
@@ -136,6 +147,7 @@ model = GraphTcn(
     num_channels_layer2 = NUM_CHANNELS_LAYER2,
     kernel_size = KERNEL_SIZE,
     dropout = DROPOUT)
+model.to(DEVICE)
 
 #Setup Feature Extractor (needed for producing the trainingsData)
 feature_extractor = FeatureExtractor()
@@ -147,10 +159,9 @@ test_dataset = GestureDataset(test_data)
 validation_dataset = GestureDataset(validation_data)
 training_dataset = GestureDataset(training_data)
 
-
-test_dataLoader = DataLoader(test_dataset, BATCH_SIZE,  shuffle=True)
-validation_dataLoader = DataLoader(validation_dataset, BATCH_SIZE,  shuffle=True)
-training_dataLoader = DataLoader(training_dataset, BATCH_SIZE,  shuffle=True) #shuffle because datasets are still grouped in labels
+test_dataLoader = DataLoader(test_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
+validation_dataLoader = DataLoader(validation_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
+training_dataLoader = DataLoader(training_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn) #shuffle because datasets are still grouped in labels
 
 #Setup training parameters
 criterion = nn.CrossEntropyLoss()
@@ -168,13 +179,17 @@ for epoch in range(NUM_EPOCHS):
         optimizer.zero_grad()
         outputs = []
         labels = []
-        for training_sample in batch: #Class: TrainingSample
-            prediction = model(training_sample.feature_packages)
+        for training_sample in batch:#Class: TrainingSample
+            #print(type(training_sample))
+            #print(type(training_sample.feature_packages))
+            prediction = model(*training_sample.feature_packages)
             outputs.append(prediction)
             labels.append(training_sample.label)
-        outputs = torch.tensor(outputs, device=DEVICE)
-        labels = torch.tensor(labels, device=DEVICE)
-        loss = criterion(torch.tensor(outputs),torch.tensor(labels))
+        outputs = torch.cat(outputs).to(DEVICE)
+        labels = torch.stack(labels).to(DEVICE)
+        #print(str(outputs.shape))
+        #print(str(labels))
+        loss = criterion(outputs,labels)
         loss.backward()
         optimizer.step()
         running_loss += loss.item() * len(labels)
@@ -189,14 +204,14 @@ for epoch in range(NUM_EPOCHS):
             outputs = []
             labels = []
             for training_sample in batch:  # Class: TrainingSample
-                prediction = model(training_sample.feature_packages)
+                prediction = model(*training_sample.feature_packages)
                 outputs.append(prediction)
                 labels.append(training_sample.label)
-            outputs = torch.tensor(outputs, device=DEVICE)
-            labels = torch.tensor(labels, device=DEVICE)
+            outputs = torch.cat(outputs).to(DEVICE)
+            labels = torch.stack(labels).to(DEVICE)
             loss = criterion(outputs, labels)
             running_loss += loss.item() * len(labels)
     val_loss = running_loss / len(validation_dataLoader.dataset)
     val_losses.append(val_loss)
     print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss}, Validation loss: {val_loss}")
-torch.save(model.state_dict(), "trained_model.pth")
+torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")

@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 def printAverageDirectionChange(landmark_vector):

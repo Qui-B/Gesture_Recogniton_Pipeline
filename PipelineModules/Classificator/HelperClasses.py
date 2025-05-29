@@ -1,7 +1,7 @@
 from torch.nn.utils.parametrizations import weight_norm
 import torch.nn as nn
 
-#Helper classes needed for the installation of a tcn network
+#Helper classes used for the initialization of the TCN
 #Nearly the same as https://github.com/locuslab/TCN but switched Activationfunction to tanh
 
 class Chomp1d(nn.Module):
