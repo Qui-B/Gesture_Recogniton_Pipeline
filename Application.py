@@ -41,11 +41,11 @@ def main() -> None:
             classificator.window.update(spatial_feature_package)
 
         # Recogniton Phase
-        frameTime = 0
-        count = 0
+        t0 = 0
+        t1 = 0
         while True:
-            t0 = time.time()
-            count += 1
+            t0 = t1
+            t1 = time.time()
             try:
                 cur_frame = lm_capturer.get()
                 feature_package: FeaturePackage = feature_extractor.extract(cur_frame)
@@ -59,7 +59,7 @@ def main() -> None:
                         print("")
             except UnsuccessfulCaptureException as e:
                 print(e.message)
-            cv2.waitKey(1)# DEBUG
+            print("fps: " + str(1 / (t1 - t0)))
 
 if __name__ == '__main__':
     main()

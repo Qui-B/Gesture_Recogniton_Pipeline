@@ -56,7 +56,7 @@ class FeatureExtractor:
 
 
 
-    def extract(self, RGB_frame):
+    def extract(self, frame):
         """
         Extracts the hand landmarks from an image. Converts the coordinates to the differences from the previous frame,
         and returns them as a FeaturePackage.
@@ -67,6 +67,7 @@ class FeatureExtractor:
         Returns:
             feature-package (object): Contains a (21x3) tensor of landmarks and a flag indicating if a hand was detected.
         """
+        RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # RGB colorscheme needed for landMarc extraction
         mp_result = self.mp.process(RGB_frame)
 
         landmark_coordinates = np.zeros((21, 3))

@@ -18,7 +18,7 @@ class FrameCapturer:
         self.stop = stop_event
 
         # set camera and frame dimensions
-        self.cap = cv2.VideoCapture(image_source, cv2.CAP_DSHOW)
+        self.cap = cv2.VideoCapture(image_source)
         self.cap.set(cv2.CAP_PROP_FPS, 30)
         #self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 600)
         #self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 500)
@@ -39,16 +39,15 @@ class FrameCapturer:
         return num_frames / (t1 - t0)
 
     def run(self):
-
         while not self.stop.is_set():
             frame = self.capture()
-            if self.frame_queue.qsize() == 3:
-                self.droped_frames += 1
+            #if self.frame_queue.qsize() == 3:
+                #self.droped_frames += 1
             self.frame_queue.put(frame)
-
+        self.cap.release()
 
     def get(self):
-        print("queue size: " + str(self.frame_queue.qsize()) + " frames Droped: " + str(self.droped_frames))
+        #print("queue size: " + str(self.frame_queue.qsize()) + " frames Droped: " + str(self.droped_frames))
         return self.frame_queue.get(block=True)
 
 
@@ -68,5 +67,4 @@ class FrameCapturer:
 
         if frame is None or not successful_read:
             raise UnsuccessfulCaptureException(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # RGB colorscheme needed for landMarc extraction
-        return RGB_frame
+        return frame
