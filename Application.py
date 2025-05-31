@@ -16,7 +16,11 @@ from PipelineModules.FrameCapturer import FrameCapturer
 def main() -> None:
         stop_event = threading.Event()
 
-        lm_capturer: FrameCapturer = FrameCapturer(stop_event)
+        frame_capturer: FrameCapturer = FrameCapturer(stop_event)
+        fps = frame_capturer.measure_camera_fps(400)
+        print("Camera initialization succeeded | FPS: " + str(fps))
+
+
         feature_extractor: FeatureExtractor = FeatureExtractor(stop_event)
         classificator: GraphTcn = GraphTcn(
             input_size=INPUT_SIZE,
@@ -27,27 +31,29 @@ def main() -> None:
             kernel_size=KERNEL_SIZE,
             dropout=DROPOUT
         ).to(DEVICE)
-        #classificator.load_state_dict(torch.load("PipelineModules/Classificator/trained_weights.pth"))
+        #classificator.load_state_dict(torch.load("PipelineModules/Classificator/trained_weights.pth")) TODO UNCOMMENT!!!!!!
+        print("GraphTcn initialization succeeded")
 
-        capture_thread = threading.Thread(target=lm_capturer.run, daemon=True)
+        capture_thread = threading.Thread(target=frame_capturer.run, daemon=True)
         capture_thread.start()
 
+        print("Staring warm up...")
         # Warm up until frame_deque is full
         while classificator.window.getLength() < 30:
-            cur_frame = lm_capturer.get()
+            cur_frame = frame_capturer.get()
             feature_package = feature_extractor.extract(cur_frame)
             spatial_t = classificator.extractSpatialFeatures(feature_package.lm_coordinates) #manually fill window to avoid already running the tcn
             spatial_feature_package: SpatialFeaturePackage = SpatialFeaturePackage(spatial_t, feature_package.hand_detected)
             classificator.window.update(spatial_feature_package)
-
+        print("Warm up done")
         # Recogniton Phase
         t0 = 0
         t1 = 0
+        print("Starting classification...")
+        print("Classification done")
         while True:
-            t0 = t1
-            t1 = time.time()
             try:
-                cur_frame = lm_capturer.get()
+                cur_frame = frame_capturer.get()
                 feature_package: FeaturePackage = feature_extractor.extract(cur_frame)
                 with torch.no_grad():
                     result_t: torch.Tensor = classificator(feature_package)
@@ -59,7 +65,6 @@ def main() -> None:
                         print("")
             except UnsuccessfulCaptureException as e:
                 print(e.message)
-            print("fps: " + str(1 / (t1 - t0)))
 
 if __name__ == '__main__':
     main()

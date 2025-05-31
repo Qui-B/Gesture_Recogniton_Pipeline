@@ -41,13 +41,13 @@ class FrameCapturer:
     def run(self):
         while not self.stop.is_set():
             frame = self.capture()
-            #if self.frame_queue.qsize() == 3:
-                #self.droped_frames += 1
+            if self.frame_queue.qsize() == 3:
+                self.droped_frames += 1
             self.frame_queue.put(frame)
         self.cap.release()
 
     def get(self):
-        #print("queue size: " + str(self.frame_queue.qsize()) + " frames Droped: " + str(self.droped_frames))
+        print("queue size: " + str(self.frame_queue.qsize()) + " frames Droped: " + str(self.droped_frames))
         return self.frame_queue.get(block=True)
 
 

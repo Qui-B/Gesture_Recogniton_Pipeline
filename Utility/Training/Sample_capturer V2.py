@@ -21,8 +21,11 @@ ESC = 27
 def main() -> None:
         stop_event = threading.Event()
 
-        lm_capturer: FrameCapturer = FrameCapturer(stop_event)
-        capture_thread = threading.Thread(target=lm_capturer.run, daemon=True)
+        frame_capturer: FrameCapturer = FrameCapturer(stop_event)
+        fps = frame_capturer.measure_camera_fps(400)
+        print("FPS: " + str(fps))
+
+        capture_thread = threading.Thread(target=frame_capturer.run, daemon=True)
         capture_thread.start()
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Use 'avc1' or 'H264' if needed
@@ -36,12 +39,8 @@ def main() -> None:
             min_detection_confidence=MIN_DETECTION_CONFIDENCE,
             min_tracking_confidence=MIN_TRACKING_CONFIDENCE
         )
-        t0 = 0
-        t1 = 0
         while True:
-            t0 = t1
-            t1 = time.time()
-            frame = lm_capturer.get()
+            frame = frame_capturer.get()
             out.write(frame)
             RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             mp_result = mediapipe.process(RGB_frame)
@@ -49,7 +48,6 @@ def main() -> None:
                 for hand_landmarks in mp_result.multi_hand_landmarks:
                     mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             cv2.imshow("Debug", frame)
-            print("fps: " + str(1/(t1-t0)))
             if cv2.waitKey(1) == ESC:
                 stop_event.set()
                 capture_thread.join()
