@@ -214,4 +214,4 @@ for epoch in range(NUM_EPOCHS):
     val_loss = running_loss / len(validation_dataLoader.dataset)
     val_losses.append(val_loss)
     print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss}, Validation loss: {val_loss}")
-torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")
+    torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")

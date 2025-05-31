@@ -1,11 +1,12 @@
+from sympy import false
 from torch import torch,nn
 
 #Collection of all setting-parameters used by the pipeline modules
 
 #===========================
-#LmCapturer
+#FrameCapturer
 #===========================
-IMAGE_SOURCE = 1 #droid cam: 'http://10.0.0.170:4747/video'
+IMAGE_SOURCE = 1 #droid cam: 0 webcam: 1
 IMAGE_WIDTH = 1280
 IMAGE_HEIGHT = 720
 FPS = 30 #Recommended 30 Frames. If below use 0 to unlock the framerate
@@ -14,9 +15,9 @@ FPS = 30 #Recommended 30 Frames. If below use 0 to unlock the framerate
 #LmExtractor
 #===========================
 STATIC_IMAGE_MODE = False
-MAX_NUM_HANDS = 2
-MIN_DETECTION_CONFIDENCE = 0.5
-MIN_TRACKING_CONFIDENCE = 0.5
+MAX_NUM_HANDS = 1
+MIN_DETECTION_CONFIDENCE = 0.4
+MIN_TRACKING_CONFIDENCE = 0.4
 FEATURE_VECTOR_LENGTH = 21 #number of landmarks
 FEATURE_VECTOR_WIDTH = 3 #number of coordinates per landmark
 

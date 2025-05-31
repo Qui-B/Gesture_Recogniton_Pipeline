@@ -1,3 +1,6 @@
+import sys
+import time
+
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -13,8 +16,9 @@ class FeatureExtractor:
     Extracts landmark-features from an image and captures them in a FeaturePackage.
     Spatial features get extracted duríng the classification process as they also have to be trained in combination with the later tcn layer.
     """
-    def __init__(self):
+    def __init__(self, stop_event):
         self.lastFrame = None
+        self.stop = stop_event
 
         #mediapipe setup
         self.mp_drawing = mp.solutions.drawing_utils
@@ -40,7 +44,7 @@ class FeatureExtractor:
         relative_landmark_vector = np.zeros((21,3))
         if self.lastFrame is not None:
             relative_landmark_vector[:,:] = landmark_vector[:,:] - self.lastFrame[:,:]
-        self.lastFrame = landmark_vector
+        self.lastFrame = landmark_vector #TODO put in loop and check
         return relative_landmark_vector
 
     def sharpen_frame(self,frame):
@@ -50,34 +54,38 @@ class FeatureExtractor:
         return cv2.filter2D(frame, -1, kernel)
 
 
+
+
     def extract(self, RGB_frame):
         """
-        Extracts the hand landmarks from an image. Afterward converts the coordinates to the distances from the previous image and
-        returns them as a feature-package.
+        Extracts the hand landmarks from an image. Converts the coordinates to the differences from the previous frame,
+        and returns them as a FeaturePackage.
 
         Args:
             RGB_frame: base image-frame from which the features get extracted
 
         Returns:
-            feature-package (object): Contains an array (21*3) for storing the landmarks and an extra field indicating if a hand got detected.
+            feature-package (object): Contains a (21x3) tensor of landmarks and a flag indicating if a hand was detected.
         """
-        landmark_coordinates = np.zeros((21,3))
+        mp_result = self.mp.process(RGB_frame)
+
+        landmark_coordinates = np.zeros((21, 3))
         hand_detected = False
 
-        sharpened_frame = self.sharpen_frame(RGB_frame)
-        mp_result = self.mp.process(sharpened_frame)
-
-        if mp_result.multi_hand_landmarks: #case: hand detected
+        if mp_result.multi_hand_landmarks:
             landmarks = mp_result.multi_hand_landmarks[0].landmark
             for index, landmark in enumerate(landmarks):
                 landmark_coordinates[index] = [landmark.x, landmark.y, landmark.z]
-            self.mp_drawing.draw_landmarks(RGB_frame, mp_result.multi_hand_landmarks[0], self.mp_hands.HAND_CONNECTIONS)
+            for hand_landmarks in mp_result.multi_hand_landmarks:
+                self.mp_drawing.draw_landmarks(RGB_frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
             hand_detected = True
 
-        cv2.imshow("Debug Frame",RGB_frame)
-        cv2.waitKey(30)
-
         relative_landmark_vector = self.calcRelativeVector(landmark_coordinates)
-        feature_package = FeaturePackage(torch.tensor(relative_landmark_vector, dtype=torch.float32, device=DEVICE), hand_detected)
+        feature_package = FeaturePackage(
+            torch.tensor(relative_landmark_vector, dtype=torch.float32, device=DEVICE),
+            hand_detected
+        )
+        cv2.imshow("debug", RGB_frame)
+        cv2.waitKey(1)
         return feature_package
 
