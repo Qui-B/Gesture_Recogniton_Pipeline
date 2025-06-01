@@ -25,11 +25,15 @@ def main() -> None:
         fps = frame_capturer.measure_camera_fps(400)
         print("FPS: " + str(fps))
 
+        actual_width = frame_capturer.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        actual_height = frame_capturer.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        print(f"🔍 Camera resolution: {int(actual_width)}x{int(actual_height)}")
+
         capture_thread = threading.Thread(target=frame_capturer.run, daemon=True)
         capture_thread.start()
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Use 'avc1' or 'H264' if needed
-        out = cv2.VideoWriter('cur_sample.mp4', fourcc, 30.0, (1280, 720))
+        out = cv2.VideoWriter('cur_sample.mp4', fourcc, 30.0, (640, 360))
 
         mp_drawing = mp.solutions.drawing_utils
         mp_hands = mp.solutions.hands

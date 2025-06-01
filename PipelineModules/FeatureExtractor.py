@@ -1,13 +1,17 @@
+import queue
 import sys
+import threading
 import time
-
+from typing import Callable
+import concurrent.futures
 import cv2
 import mediapipe as mp
 import numpy as np
 import torch
+import os
 
 from Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
-    MIN_TRACKING_CONFIDENCE, DEVICE
+    MIN_TRACKING_CONFIDENCE, DEVICE, EXTRACTOR_NUM_THREADS
 from Utility.Dataclasses import FeaturePackage
 
 
@@ -16,10 +20,12 @@ class FeatureExtractor:
     Extracts landmark-features from an image and captures them in a FeaturePackage.
     Spatial features get extracted duríng the classification process as they also have to be trained in combination with the later tcn layer.
     """
+
     def __init__(self, stop_event):
         self.lastFrame = None
         self.stop = stop_event
-
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=EXTRACTOR_NUM_THREADS)  # thread pool
+        self.feature_package_futures = queue.Queue(maxsize=6)
         #mediapipe setup
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_hands = mp.solutions.hands
@@ -27,8 +33,38 @@ class FeatureExtractor:
             static_image_mode=STATIC_IMAGE_MODE,
             max_num_hands=MAX_NUM_HANDS,
             min_detection_confidence=MIN_DETECTION_CONFIDENCE,
-            min_tracking_confidence=MIN_TRACKING_CONFIDENCE
+            min_tracking_confidence=MIN_TRACKING_CONFIDENCE,
+            model_complexity=1
         )
+
+        self.queue_full_failures = 0  # No custom failure handle because of potential performance slowdown
+        self.frame_queue_timeout_failure = 0
+
+    def start(self, getRGBFrame: Callable[[], np.array]):
+        extractor_thread = threading.Thread(target=self.run, args=(getRGBFrame,), daemon=True)
+        extractor_thread.start()
+        return extractor_thread
+
+    def run(self, getRGBFrame: Callable[[], np.array]):
+        while not self.stop.is_set():
+            try:
+                frame = getRGBFrame()  # blocks until frame is there
+                future = self.executor.submit(self.extract, frame)
+                self.feature_package_futures.put((future,frame))
+            except Exception as e:
+                if isinstance(e, queue.Empty): #case getRGBFrame reached timeout
+                    self.frame_queue_timeout_failure += 1
+                elif isinstance(e, queue.Full):
+                    self.queue_full_failures += 1
+
+        self.executor.shutdown(wait=True)
+
+    def getNext(self):
+        future, frame = self.feature_package_futures.get(block=True)
+        feature_package = future.result()
+        cv2.imshow("debug", frame) #DEBUG: For checking future starving
+        cv2.waitKey(1)
+        return feature_package
 
     def calcRelativeVector(self, landmark_vector):
         """
@@ -47,7 +83,7 @@ class FeatureExtractor:
         self.lastFrame = landmark_vector #TODO put in loop and check
         return relative_landmark_vector
 
-    def sharpen_frame(self,frame):
+    def sharpen_frame(self,frame): #MAYBE DELETE
         kernel = np.array([[0, -1, 0],
                            [-1, 5, -1],
                            [0, -1, 0]])
@@ -56,7 +92,7 @@ class FeatureExtractor:
 
 
 
-    def extract(self, frame):
+    def extract(self, RGB_frame):
         """
         Extracts the hand landmarks from an image. Converts the coordinates to the differences from the previous frame,
         and returns them as a FeaturePackage.
@@ -67,7 +103,6 @@ class FeatureExtractor:
         Returns:
             feature-package (object): Contains a (21x3) tensor of landmarks and a flag indicating if a hand was detected.
         """
-        RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # RGB colorscheme needed for landMarc extraction
         mp_result = self.mp.process(RGB_frame)
 
         landmark_coordinates = np.zeros((21, 3))
@@ -86,7 +121,5 @@ class FeatureExtractor:
             torch.tensor(relative_landmark_vector, dtype=torch.float32, device=DEVICE),
             hand_detected
         )
-        cv2.imshow("debug", RGB_frame)
-        cv2.waitKey(1)
         return feature_package
 

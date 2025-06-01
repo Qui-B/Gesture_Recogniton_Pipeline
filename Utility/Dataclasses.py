@@ -2,8 +2,6 @@ from typing import NamedTuple
 
 import numpy as np
 import torch
-
-
 class FeaturePackage(NamedTuple):
     """
        Dataclass used to store the features, which get extracted by the FeatureExtractor. Gets processed by the Graph-TCN model.

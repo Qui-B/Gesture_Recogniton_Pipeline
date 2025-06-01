@@ -2,7 +2,7 @@ from torch import torch,nn
 from torch_geometric.nn.conv import GCNConv
 
 from PipelineModules.Classificator.FrameWindow import FrameWindow
-from Config import EDGE_INDEX, FEATURE_VECTOR_WIDTH
+from Config import EDGE_INDEX, FEATURE_VECTOR_WIDTH, DEVICE
 from PipelineModules.Classificator.HelperClasses import TemporalConvNet
 from Utility.Dataclasses import FeaturePackage, SpatialFeaturePackage
 
@@ -23,6 +23,9 @@ class GraphTcn(nn.Module):
         self.classifier = nn.Linear(num_channels_layer1[-1], output_size)
         self.softmax = nn.Softmax(dim=1)
         self.init_weights()
+
+
+
 
     def init_weights(self):
         self.classifier.weight.data.normal_(0, 0.01)
