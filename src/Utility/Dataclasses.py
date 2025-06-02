@@ -25,3 +25,5 @@ class SpatialFeaturePackage(NamedTuple):
     hand_detected: bool
 
 #Dataclass Trainings_Sample is in GraphTCNTrainer because it's never needed somewhere else
+
+#TODO add Datacontainer for x,y,z values

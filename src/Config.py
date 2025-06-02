@@ -7,22 +7,22 @@ from torch import torch,nn
 
 
 #===========================
-#Performance
+#LEGACY DELETE
 #===========================
-SKIP_N_FRAMES = 0 #drop frames inbetween for more consistency
-
-
 EXTRACTOR_NUM_THREADS = 2 #Mainly used by the mediapipe extraction
 #Only in case of performance problems on CPU
 CLASSIFICATOR_NUM_THREADS = 8
 CLASSIFICATOR_NUM_INTEROP_THREADS = 2
+
+USE_CUSTOM_MP_MULTITHREADING = True
+QUEUE_TIMEOUT_S = 1
 #===========================
 #FrameCapturer
 #===========================
-IMAGE_SOURCE = 1 #droid cam: 0 webcam: 1
+IMAGE_SOURCE = 0 #droid cam: 0 webcam: 1
 IMAGE_WIDTH = 1280
 IMAGE_HEIGHT = 720
-
+SKIP_N_FRAMES = 0 #drop frames inbetween for more consistency
 
 #===========================
 #LmExtractor
@@ -49,7 +49,7 @@ NUM_OUTPUT_CLASSES = 7 #scroll up/down, swipe left/right, zoom in/out, nothing
 GCN_NUM_OUTPUT_CHANNELS = 36
 INPUT_SIZE = FEATURE_VECTOR_LENGTH * GCN_NUM_OUTPUT_CHANNELS + 1 #+1 because of the HAND_DETECTED feature
 DROPOUT = 0.1 #TESTING
-DEVICE = 'cpu' # or cuda:0
+DEVICE = 'cuda:0' # or cpu
 
 #Channels for the tcn layers
 NUM_CHANNELS_LAYER1 = [WINDOW_LENGTH,WINDOW_LENGTH,WINDOW_LENGTH,WINDOW_LENGTH] #4 Layers because it allows us to get a receptive window of 31

@@ -1,18 +1,14 @@
 import queue
-import sys
-import threading
-import time
 from typing import Callable
 import concurrent.futures
 import cv2
 import mediapipe as mp
 import numpy as np
 import torch
-import os
 
-from Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
-    MIN_TRACKING_CONFIDENCE, DEVICE, EXTRACTOR_NUM_THREADS
-from Utility.Dataclasses import FeaturePackage
+from ..Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
+    MIN_TRACKING_CONFIDENCE, DEVICE, EXTRACTOR_NUM_THREADS, QUEUE_TIMEOUT_S
+from ..Utility.Dataclasses import FeaturePackage
 
 
 class FeatureExtractor:
@@ -39,11 +35,6 @@ class FeatureExtractor:
 
         self.queue_full_failures = 0  # No custom failure handle because of potential performance slowdown
         self.frame_queue_timeout_failure = 0
-
-    def start(self, getRGBFrame: Callable[[], np.array]):
-        extractor_thread = threading.Thread(target=self.run, args=(getRGBFrame,), daemon=True)
-        extractor_thread.start()
-        return extractor_thread
 
     def run(self, getRGBFrame: Callable[[], np.array]):
         while not self.stop.is_set():

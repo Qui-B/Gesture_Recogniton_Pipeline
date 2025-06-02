@@ -1,13 +1,8 @@
 import queue
-import sys
-import threading
-import time
-
 import cv2
-from sympy.codegen import Print
 
-from Config import IMAGE_SOURCE, SKIP_N_FRAMES
-from Utility.Exceptions import UnsuccessfulCaptureException
+from src.Config import IMAGE_SOURCE, SKIP_N_FRAMES
+from src.Utility.Exceptions import UnsuccessfulCaptureException
 
 
 class FrameCapturer:
@@ -49,14 +44,8 @@ class FrameCapturer:
                     self.queue_full_failures += 1
         self.cap.release()
 
-    def start(self):
-        capture_thread = threading.Thread(target=self.run, daemon=True)
-        capture_thread.start()
-        return capture_thread
-
-
     def get(self):
-        return self.frame_queue.get(block=True, timeout=1)
+        return self.frame_queue.get(block=True) #TODO maybe add timeout
 
 
     def capture(self):
