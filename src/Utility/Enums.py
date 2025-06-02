@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class Gesture(Enum):
     Nothing = 0
     ScrollUp = 1

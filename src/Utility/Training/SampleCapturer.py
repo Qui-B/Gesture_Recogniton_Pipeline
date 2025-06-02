@@ -1,23 +1,11 @@
-import sys
 import threading
-
-
-import mediapipe as mp
-import time
-
 import cv2
-import torch
-from Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
-    KERNEL_SIZE, DROPOUT, DEVICE, STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, MIN_TRACKING_CONFIDENCE
-from Utility.Dataclasses import SpatialFeaturePackage
-from Utility.Enums import Gesture
-from Utility.Exceptions import UnsuccessfulCaptureException
-from PipelineModules.Classificator.GraphTCN import GraphTcn
-from PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
-from PipelineModules.FrameCapturer import FrameCapturer
+import mediapipe as mp
+
+from src.Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, MIN_TRACKING_CONFIDENCE
+from src.PipelineModules.FrameCapturer import FrameCapturer
 
 ESC = 27
-
 def main() -> None:
         stop_event = threading.Event()
 
@@ -46,8 +34,8 @@ def main() -> None:
         while True:
             frame = frame_capturer.get()
             out.write(frame)
-            RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            mp_result = mediapipe.process(RGB_frame)
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            mp_result = mediapipe.process(rgb_frame)
             if mp_result.multi_hand_landmarks:
                 for hand_landmarks in mp_result.multi_hand_landmarks:
                     mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)

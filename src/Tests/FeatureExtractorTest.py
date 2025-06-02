@@ -1,16 +1,19 @@
+import threading
 import unittest
 import cv2
 import numpy as np
 
-from Config import FEATURE_VECTOR_LENGTH, FEATURE_VECTOR_WIDTH, SAMPLE_PICTURE_PATH
-from PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
+from src.Config import NUM_LANDMARKS, SAMPLE_PICTURE_PATH
+from src.PipelineModules.FeatureExtractor import FeatureExtractor
+from src.Utility.Dataclasses import FeaturePackage
 
 
 class LmCapturerTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.feature_extractor = FeatureExtractor()
+        cls.stop_event = threading.Event()
+        cls.feature_extractor = FeatureExtractor(stop_event=cls.stop_event)
         cls.sample_picture = cv2.cvtColor(cv2.imread(SAMPLE_PICTURE_PATH), cv2.COLOR_BGR2RGB)
 
     def test_feature_package_nullcheck(self):
@@ -23,10 +26,10 @@ class LmCapturerTest(unittest.TestCase):
         feature_package: FeaturePackage = self.feature_extractor.extract(self.sample_picture)
 
         landmark_shape = feature_package.lm_coordinates.shape
-        self.assertEqual(landmark_shape[0], FEATURE_VECTOR_LENGTH,
-                         "Number of rows should equal FEATURE_VECTOR_LENGTH (Config.py)")
-        self.assertEqual(landmark_shape[1], FEATURE_VECTOR_WIDTH,
-                         "Number of rows should equal FEATURE_VECTOR_WIDTH (Config.py)")
+        self.assertEqual(landmark_shape[0], NUM_LANDMARKS,
+                         "Number of rows should equal NUM_LANDMARKS (Config.py)")
+        self.assertEqual(landmark_shape[1], NUM_LANDMARKS,
+                         "Number of rows should equal NUM_LANDMARKS (Config.py)")
 
     def test_hand_detected_field(self):
         feature_package: FeaturePackage = self.feature_extractor.extract(self.sample_picture)
@@ -37,10 +40,10 @@ class LmCapturerTest(unittest.TestCase):
         feature_package: FeaturePackage = self.feature_extractor.extract(self.sample_picture)
         landmark_coordinates = feature_package.lm_coordinates
 
-        self.assertEqual(landmark_coordinates.shape[0], FEATURE_VECTOR_LENGTH,
-                         "Number of rows should equal FEATURE_VECTOR_LENGTH (Config.py)")
-        self.assertEqual(landmark_coordinates.shape[1], FEATURE_VECTOR_WIDTH,
-                         "Number of rows should equal FEATURE_VECTOR_WIDTH (Config.py)")
+        self.assertEqual(landmark_coordinates.shape[0], NUM_LANDMARKS,
+                         "Number of rows should equal NUM_LANDMARKS (Config.py)")
+        self.assertEqual(landmark_coordinates.shape[1], NUM_LANDMARKS,
+                         "Number of rows should equal NUM_LANDMARKS (Config.py)")
 
     def test_calcRelativeVector_first_frame(self):
         self.feature_extractor.lastFrame = None #empty last frame to simulate the first iteration

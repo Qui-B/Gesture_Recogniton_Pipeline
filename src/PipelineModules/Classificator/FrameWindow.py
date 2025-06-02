@@ -3,8 +3,8 @@ from collections import deque
 import torch
 
 #from Hand_Recognition.DebugUtil import printAverageDirectionChange, printLandMarkCoordinate
-from Config import WINDOW_LENGTH, FEATURE_VECTOR_LENGTH, GCN_NUM_OUTPUT_CHANNELS, DEVICE
-from Utility.Dataclasses import SpatialFeaturePackage
+from src.Config import GCN_NUM_OUTPUT_CHANNELS, DEVICE, FRAMEWINDOW_LEN, NUM_LANDMARKS
+from src.Utility.Dataclasses import SpatialFeaturePackage
 
 
 #Most methods corresponding to FrameWindow are in GraphTcn because of the needed preprocessing before Windowupdates
@@ -14,18 +14,18 @@ class FrameWindow:
     Stores the most recent landmark vectors in a deque which serves as a input for the classification tcp. Used by GraphTCN.
     """
     def __init__(self) -> None:
-        self.frame_deque = deque(maxlen=WINDOW_LENGTH)
-        self.FLATTENED_T_LENGTH = FEATURE_VECTOR_LENGTH * GCN_NUM_OUTPUT_CHANNELS + 1 #need for tensor dimension remapping in update frame_deque
+        self.frame_deque = deque(maxlen=FRAMEWINDOW_LEN)
+        self.FLATTENED_T_LENGTH = NUM_LANDMARKS * GCN_NUM_OUTPUT_CHANNELS + 1 #need for tensor dimension remapping in update frame_deque
                                                                                       #+1 to store the hand detected flag
 
-    def flatten2DTensor(self, spatial_feature_pkg: SpatialFeaturePackage):
+    def flattenSpatialFP(self, spatial_feature_pkg: SpatialFeaturePackage):
         window_t = torch.zeros(self.FLATTENED_T_LENGTH, device=DEVICE)
         window_t[0] = float(spatial_feature_pkg.hand_detected)
         window_t[1:] = spatial_feature_pkg.spatial_lm_t.view(-1)  # flatten by concatenating rows (HAND_DETECTED_ELEM,x0,y0,z0,x1,y1,z1,...,x20,y20,z20)
         return window_t
 
     def update(self, spatial_feature_pkg: SpatialFeaturePackage):
-        flattened_t = self.flatten2DTensor(spatial_feature_pkg)
+        flattened_t = self.flattenSpatialFP(spatial_feature_pkg)
         self.frame_deque.append(flattened_t)
 
     def getLength(self):

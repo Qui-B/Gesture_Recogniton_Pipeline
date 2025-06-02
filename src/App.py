@@ -1,19 +1,14 @@
 import threading
+import torch
 from typing import Callable, Any
 
-import torch
-import cv2
-
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
-    NUM_CHANNELS_LAYER2, KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING
+ KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
 from src.PipelineModules.FeatureExtractor import FeatureExtractor
 from src.PipelineModules.FrameCapturer import FrameCapturer
-from src.Utility.Dataclasses import SpatialFeaturePackage, FeaturePackage
+from src.Utility.Dataclasses import SpatialFeaturePackage
 from src.Utility.Enums import Gesture
-from src.Utility.Temp import stop_event
-
-
 
 class App:
     def __init__(self):
@@ -25,7 +20,6 @@ class App:
             output_size=NUM_OUTPUT_CLASSES,
             gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
             num_channels_layer1=NUM_CHANNELS_LAYER1,
-            num_channels_layer2=NUM_CHANNELS_LAYER2,
             kernel_size=KERNEL_SIZE,
             dropout=DROPOUT).to(DEVICE)
         # classificator.load_state_dict(torch.load("PipelineModules/Classificator/trained_weights.pth")) TODO UNCOMMENT!!!!!!
@@ -71,7 +65,6 @@ class App:
         capture_thread.start()
         self.warm_up(get_feature_package)
         self.startClassification(get_feature_package)
-
 
 
 

@@ -1,14 +1,14 @@
 import unittest
-
 import cv2
 import torch
 
-from Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
-    KERNEL_SIZE, DROPOUT, SAMPLE_PICTURE_PATH, BATCH_SIZE, WINDOW_LENGTH, DEVICE
-from PipelineModules.Classificator.GraphTCN import GraphTcn
-from Util.DataClasses import SpatialFeaturePackage
-from PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
+from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
+    KERNEL_SIZE, DROPOUT, SAMPLE_PICTURE_PATH, BATCH_SIZE, FRAMEWINDOW_LEN, DEVICE
+from src.PipelineModules.Classificator.GraphTCN import GraphTcn
+from src.PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
+from src.Utility.Dataclasses import SpatialFeaturePackage
 
+#TODO REWRITE TO FIT WITH CURRENT IMPL
 
 class GraphTcnTest(unittest.TestCase):
 
@@ -22,7 +22,6 @@ class GraphTcnTest(unittest.TestCase):
                                 output_size = NUM_OUTPUT_CLASSES,
                                 gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
                                 num_channels_layer1 = NUM_CHANNELS_LAYER1,
-                                num_channels_layer2 = NUM_CHANNELS_LAYER2,
                                 kernel_size = KERNEL_SIZE,
                                 dropout = DROPOUT).to(DEVICE)
         feature_extractor = FeatureExtractor()
@@ -50,18 +49,18 @@ class GraphTcnTest(unittest.TestCase):
         self.graph_tcn.window.update(self.spatial_feature_package)
         cur_window = self.graph_tcn.window.getAsTensor()
 
-        for i in range(1,WINDOW_LENGTH):
+        for i in range(1, FRAMEWINDOW_LEN):
             self.assertEqual(i, cur_window.shape[2])
             self.graph_tcn.window.update(self.spatial_feature_package)
             cur_window = self.graph_tcn.window.getAsTensor()
 
     def test_updateWindow_tensor_pop(self):
         self.graph_tcn.window.clear()
-        for i in range(0,WINDOW_LENGTH+1): #+1 to check frame_deque pop
+        for i in range(0, FRAMEWINDOW_LEN + 1): #+1 to check frame_deque pop
             self.graph_tcn.window.update(self.spatial_feature_package)
 
         window = self.graph_tcn.window.getAsTensor()
-        self.assertEqual(WINDOW_LENGTH,window.shape[2])
+        self.assertEqual(FRAMEWINDOW_LEN, window.shape[2])
 
     def test_updateWindow_flattening(self):
         self.graph_tcn.window.update(self.spatial_feature_package)

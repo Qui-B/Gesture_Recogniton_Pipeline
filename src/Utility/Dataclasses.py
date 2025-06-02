@@ -1,7 +1,9 @@
-from typing import NamedTuple
-
 import numpy as np
 import torch
+from typing import NamedTuple
+
+#Various dataclasses for transferring data between pipeline modules
+
 class FeaturePackage(NamedTuple):
     """
        Dataclass used to store the features, which get extracted by the FeatureExtractor. Gets processed by the Graph-TCN model.
@@ -24,6 +26,9 @@ class SpatialFeaturePackage(NamedTuple):
     spatial_lm_t: torch.Tensor
     hand_detected: bool
 
-#Dataclass Trainings_Sample is in GraphTCNTrainer because it's never needed somewhere else
 
-#TODO add Datacontainer for x,y,z values
+class TrainingSample(NamedTuple):
+    feature_packages: list[FeaturePackage]
+    label: torch.Tensor
+
+#No data container for landmark coordinates to improve performance

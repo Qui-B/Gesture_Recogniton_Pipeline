@@ -1,6 +1,5 @@
 from src.App import App
 
-
 def main() -> None:
     app = App()
     app.start()

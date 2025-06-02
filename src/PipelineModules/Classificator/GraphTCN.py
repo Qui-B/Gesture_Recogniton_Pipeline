@@ -1,18 +1,18 @@
 from torch import torch,nn
 from torch_geometric.nn.conv import GCNConv
 
-from PipelineModules.Classificator.FrameWindow import FrameWindow
-from Config import EDGE_INDEX, FEATURE_VECTOR_WIDTH, DEVICE
-from PipelineModules.Classificator.HelperClasses import TemporalConvNet
-from Utility.Dataclasses import FeaturePackage, SpatialFeaturePackage
+from src.PipelineModules.Classificator.FrameWindow import FrameWindow
+from src.Config import EDGE_INDEX, NUM_LANDMARK_DIMENSIONS
+from src.PipelineModules.Classificator.HelperClasses import TemporalConvNet
+from src.Utility.Dataclasses import FeaturePackage, SpatialFeaturePackage
 
 
 class GraphTcn(nn.Module):
-    def __init__(self, input_size, output_size, num_channels_layer1, num_channels_layer2, gcn_output_channels ,  kernel_size, dropout):
+    def __init__(self, input_size, output_size, num_channels_layer1, gcn_output_channels,  kernel_size, dropout, feature_vector_width = NUM_LANDMARK_DIMENSIONS):
         super(GraphTcn, self).__init__()
         self.window = FrameWindow()
 
-        self.gcn = GCNConv(FEATURE_VECTOR_WIDTH, gcn_output_channels)
+        self.gcn = GCNConv(feature_vector_width, gcn_output_channels)
 
         self.tcn = TemporalConvNet(
                 input_size,

@@ -9,28 +9,24 @@ import cv2
 from pathlib import Path
 
 
-from PipelineModules.Classificator.GraphTCN import GraphTcn
-from PipelineModules.FeatureExtractor import FeatureExtractor
-from Config import (WINDOW_LENGTH, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER2, NUM_CHANNELS_LAYER1,
-                    KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
-                    GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE, REL_PORTION_FOR_VALIDATION, REL_PORTION_FOR_TESTING,
-                    NUM_EPOCHS, DEVICE)
-from Utility.Dataclasses import FeaturePackage
-from Utility.Enums import Gesture
-from Utility.Exceptions import WindowLengthException, UnsuccessfulCaptureException
+from src.PipelineModules.Classificator.GraphTCN import GraphTcn
+from src.PipelineModules.FeatureExtractor import FeatureExtractor
+from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER2, NUM_CHANNELS_LAYER1,
+                        KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
+                        GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE, REL_PORTION_FOR_VALIDATION, REL_PORTION_FOR_TESTING,
+                        NUM_EPOCHS, DEVICE)
+from src.Utility.Dataclasses import TrainingSample
+from src.Utility.Enums import Gesture
+from src.Utility.Exceptions import WindowLengthException, UnsuccessfulCaptureException
 
-
-class TrainingSample(NamedTuple):
-        feature_packages: list[FeaturePackage]
-        label: torch.Tensor
-
+#TODO implement threading for trainer
 
 #Rewrite to fit the forward method
 def extractWindowFromMP4(feature_extractor, graph_TCN: GraphTcn,  video_file):
     cap = cv2.VideoCapture(str(video_file))
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     vid_name = os.path.basename(video_file)
-    if n_frames != WINDOW_LENGTH:
+    if n_frames != FRAMEWINDOW_LEN:
         cap.release()
         raise WindowLengthException(n_frames, vid_name)
     else:

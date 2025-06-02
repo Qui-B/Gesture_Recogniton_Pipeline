@@ -1,7 +1,7 @@
 import queue
 import cv2
 
-from src.Config import IMAGE_SOURCE, SKIP_N_FRAMES
+from src.Config import IMAGE_SOURCE, SKIP_N_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH
 from src.Utility.Exceptions import UnsuccessfulCaptureException
 
 
@@ -11,15 +11,15 @@ class FrameCapturer:
     """
     Used to capture a image by the usage of cv2.
     """
-    def __init__(self,stop_event, image_source=IMAGE_SOURCE):
+    def __init__(self,stop_event):
         self.frame_count = 0  # DEBUG
         self.stop = stop_event
 
         # set camera and frame dimensions
-        self.cap = cv2.VideoCapture(image_source)
-        self.cap.set(cv2.CAP_PROP_FPS, 30)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        self.cap = cv2.VideoCapture(IMAGE_SOURCE)
+        self.cap.set(cv2.CAP_PROP_FPS, 1000) #helps in some cases if the camera defaults to lower fps
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT)
 
         self.queue_full_failures = 0 #No custom failure handle because of potential performance slowdown
         self.capture_failures = 0

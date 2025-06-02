@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from ..Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
-    MIN_TRACKING_CONFIDENCE, DEVICE, EXTRACTOR_NUM_THREADS, QUEUE_TIMEOUT_S
+    MIN_TRACKING_CONFIDENCE, DEVICE, EXTRACTOR_NUM_THREADS
 from ..Utility.Dataclasses import FeaturePackage
 
 
@@ -83,18 +83,18 @@ class FeatureExtractor:
 
 
 
-    def extract(self, RGB_frame):
+    def extract(self, rgb_frame):
         """
         Extracts the hand landmarks from an image. Converts the coordinates to the differences from the previous frame,
         and returns them as a FeaturePackage.
 
         Args:
-            RGB_frame: base image-frame from which the features get extracted
+            rgb_frame: base image-frame from which the features get extracted
 
         Returns:
             feature-package (object): Contains a (21x3) tensor of landmarks and a flag indicating if a hand was detected.
         """
-        mp_result = self.mp.process(RGB_frame)
+        mp_result = self.mp.process(rgb_frame)
 
         landmark_coordinates = np.zeros((21, 3))
         hand_detected = False
@@ -104,7 +104,7 @@ class FeatureExtractor:
             for index, landmark in enumerate(landmarks):
                 landmark_coordinates[index] = [landmark.x, landmark.y, landmark.z]
             for hand_landmarks in mp_result.multi_hand_landmarks:
-                self.mp_drawing.draw_landmarks(RGB_frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
+                self.mp_drawing.draw_landmarks(rgb_frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
             hand_detected = True
 
         relative_landmark_vector = self.calcRelativeVector(landmark_coordinates)
