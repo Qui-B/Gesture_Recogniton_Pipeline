@@ -5,7 +5,7 @@ import torch
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
     KERNEL_SIZE, DROPOUT, SAMPLE_PICTURE_PATH, BATCH_SIZE, FRAMEWINDOW_LEN, DEVICE
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
-from src.PipelineModules.FeatureExtractor import FeatureExtractor, FeaturePackage
+from src.PipelineModules.FeatureExtractor import ExtractorBase, FeaturePackage
 from src.Utility.Dataclasses import SpatialFeaturePackage
 
 #TODO REWRITE TO FIT WITH CURRENT IMPL
@@ -24,7 +24,7 @@ class GraphTcnTest(unittest.TestCase):
                                 num_channels_layer1 = NUM_CHANNELS_LAYER1,
                                 kernel_size = KERNEL_SIZE,
                                 dropout = DROPOUT).to(DEVICE)
-        feature_extractor = FeatureExtractor()
+        feature_extractor = ExtractorBase()
         cls.feature_package: FeaturePackage = feature_extractor.extract(cv2.cvtColor(cv2.imread(SAMPLE_PICTURE_PATH), cv2.COLOR_BGR2RGB))
         spatial_t = cls.graph_tcn.extractSpatialFeatures(cls.feature_package.lm_coordinates)
         cls.spatial_feature_package: SpatialFeaturePackage = SpatialFeaturePackage(spatial_t, cls.feature_package.hand_detected)

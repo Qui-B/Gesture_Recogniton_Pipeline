@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 class FeaturePackage(NamedTuple):
     """
-       Dataclass used to store the features, which get extracted by the FeatureExtractor. Gets processed by the Graph-TCN model.
+       Dataclass used to store the features, which get extracted by the ExtractorBase. Gets processed by the Graph-TCN model.
 
        Fields:
            lm_coordinates (np.array 21*3): Holds the coordinates (x,y,z) for each landmark given from mediapipe
@@ -15,9 +15,14 @@ class FeaturePackage(NamedTuple):
     lm_coordinates: np.array
     hand_detected: bool
 
+class DebugFeaturePackage(NamedTuple):
+    lm_coordinates: np.array
+    hand_detected: bool
+    frame: np.array
+
 class SpatialFeaturePackage(NamedTuple):
     """
-           Dataclass used to store the extracted spatial features from the first layer of the Graph-TCN, which get extracted by the FeatureExtractor. Gets processed by the Graph-Tcn model.
+           Dataclass used to store the extracted spatial features from the first layer of the Graph-TCN, which get extracted by the ExtractorBase. Gets processed by the Graph-Tcn model.
 
            Fields:
                spatial_lm_t (torch.Tensor 21*12): Holds 12 spatial relationships for every landmark

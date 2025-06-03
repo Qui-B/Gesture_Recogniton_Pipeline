@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
-from src.PipelineModules.FeatureExtractor import FeatureExtractor
+from src.PipelineModules.FeatureExtractor import ExtractorBase
 from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER2, NUM_CHANNELS_LAYER1,
                         KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
                         GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE, REL_PORTION_FOR_VALIDATION, REL_PORTION_FOR_TESTING,
@@ -146,7 +146,7 @@ model = GraphTcn(
 model.to(DEVICE)
 
 #Setup Feature Extractor (needed for producing the trainingsData)
-feature_extractor = FeatureExtractor()
+feature_extractor = ExtractorBase()
 
 #Setup Datasets
 test_data, validation_data, training_data  = splitTrainingData(extractTrainingData(GESTURE_SAMPLE_PATH, feature_extractor, feature_extractor))

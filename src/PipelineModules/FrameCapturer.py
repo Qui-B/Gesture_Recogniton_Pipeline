@@ -1,4 +1,7 @@
 import queue
+import threading
+import time
+
 import cv2
 
 from src.Config import IMAGE_SOURCE, SKIP_N_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH
@@ -11,29 +14,43 @@ class FrameCapturer:
     """
     Used to capture a image by the usage of cv2.
     """
-    def __init__(self,stop_event):
-        self.frame_count = 0  # DEBUG
-        self.stop = stop_event
+    def __init__(self,start_event,stop_event):
+        self.stop_event = stop_event
+        self.start_event = start_event
 
-        # set camera and frame dimensions
-        self.cap = cv2.VideoCapture(IMAGE_SOURCE)
-        self.cap.set(cv2.CAP_PROP_FPS, 1000) #helps in some cases if the camera defaults to lower fps
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT)
+        self.cap = None
+        self.capInit()
 
         self.queue_full_failures = 0 #No custom failure handle because of potential performance slowdown
         self.capture_failures = 0
 
     def measure_camera_fps(self,num_frames=60):
-        import time
+        self.stop_event.set()
         t0 = time.time()
         for _ in range(num_frames):
-            self.cap.read()
+            self.capture()
         t1 = time.time()
+        self.stop_event.clear()
         return num_frames / (t1 - t0)
 
+    def capInit(self):
+        # set camera and frame dimensions
+        self.cap = cv2.VideoCapture(IMAGE_SOURCE)
+        self.cap.set(cv2.CAP_PROP_FPS, 1000)  # helps in some cases if the camera defaults to lower fps
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT)
+
+
+    def start(self):
+        if self.cap is None:
+            self.capInit()
+        captureThread = threading.Thread(target=self.run)
+        captureThread.start()
+
+
     def run(self):
-        while not self.stop.is_set():
+        self.start_event.wait()
+        while not self.stop_event.is_set():
             try:
                 frame = self.capture()
                 self.frame_queue.put(frame, block=False)
@@ -45,7 +62,7 @@ class FrameCapturer:
         self.cap.release()
 
     def get(self):
-        return self.frame_queue.get(block=True) #TODO maybe add timeout
+        return self.frame_queue.get(block=True, timeout=10) #TODO maybe add timeout
 
 
     def capture(self):

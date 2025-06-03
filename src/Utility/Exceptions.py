@@ -1,3 +1,7 @@
+from typing import Type
+
+from sympy.categories import Object
+
 from src.Config import FRAMEWINDOW_LEN
 
 class UnsuccessfulCaptureException(Exception):
@@ -19,3 +23,18 @@ class WindowLengthException(Exception): #TODO Maybe delete as not needed until n
         self.message = ("Window-length ({cur_length}) of Video: \"{video_name} \" differs from Setting.FRAME_WINDOW_LENGTH ({settings_length})"
                         .format(video_name=video_name,cur_length=cur_window_length, settings_length=FRAMEWINDOW_LEN))
         super().__init__(self.message)
+
+class NullPointerException(Exception):
+    def __init__(self):
+        self.message = (f"Target was null")
+        super().__init__(self.message)
+
+"""
+class NullPointerException(Exception):
+    def __init__(self, obj: Object):
+        self.message = (f"Target was null but should be {type(obj).__name__}")
+        super().__init__(self.message)
+
+
+
+"""

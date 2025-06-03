@@ -1,7 +1,10 @@
 from torch import torch,nn
 
 #Collection of all setting-constants used by the pipeline modules
-
+#TODO
+ESC = 27
+DEBUG = True
+MP_MODEL_COMPLEXITY = 1
 #===========================
 #FrameCapturer
 #===========================
@@ -22,8 +25,8 @@ NUM_LANDMARK_DIMENSIONS = 3
 
 #Used parallelizing mediapipe on different frames
 USE_CUSTOM_MP_MULTITHREADING = True #Gives improvements on higher end systems (doesn't make any sense)
-EXTRACTOR_NUM_THREADS = 2 #Mainly used by the mediapipe extraction
-CLASSIFICATOR_NUM_THREADS = 8
+EXTRACTOR_NUM_THREADS = 6 #Mainly used by the mediapipe extraction
+CLASSIFICATOR_NUM_THREADS = 6
 CLASSIFICATOR_NUM_INTEROP_THREADS = 2
 
 #===========================

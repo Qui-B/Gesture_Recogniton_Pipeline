@@ -1,9 +1,11 @@
 import threading
+
+import cv2
 import torch
 from typing import Callable, Any
 
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
- KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING
+    KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING, ESC
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
 from src.PipelineModules.FeatureExtractor import FeatureExtractor
 from src.PipelineModules.FrameCapturer import FrameCapturer
@@ -12,9 +14,14 @@ from src.Utility.Enums import Gesture
 
 class App:
     def __init__(self):
+        self.start_event = threading.Event()
         self.stop_event = threading.Event()
-        self.capturer: FrameCapturer = FrameCapturer(self.stop_event)
-        self.extractor = FeatureExtractor(self.stop_event)
+        self.capturer: FrameCapturer = FrameCapturer(self.start_event,self.stop_event)
+        print("main t0")
+        fps = self.capturer.measure_camera_fps(90)
+        print(f"Capture-module initialization succeeded [FPS: {fps}]")
+        self.extractor = FeatureExtractor(self.capturer.get, self.start_event, self.stop_event)
+        print("Extractor-module initialization succeeded")
         self.classifier = GraphTcn(
             input_size=INPUT_SIZE,
             output_size=NUM_OUTPUT_CLASSES,
@@ -23,26 +30,21 @@ class App:
             kernel_size=KERNEL_SIZE,
             dropout=DROPOUT).to(DEVICE)
         # classificator.load_state_dict(torch.load("PipelineModules/Classificator/trained_weights.pth")) TODO UNCOMMENT!!!!!!
-        print("GraphTcn initialization succeeded")
+        print("Classifier-module initialization succeeded")
 
-        fps = self.capturer.measure_camera_fps(90)
-        print("Camera initialization succeeded FPS: " + str(fps))
-
-    def warm_up(self, getFeaturePackage: Callable[[], Any]):
+    def warm_up(self):
         print("Starting warm up...")
         while self.classifier.window.getLength() < 30:
-            feature_package = getFeaturePackage()
+            feature_package = self.extractor.get()
             spatial_t = self.classifier.extractSpatialFeatures(feature_package.lm_coordinates)  # manually fill window to avoid already running the tcn
             spatial_feature_package: SpatialFeaturePackage = SpatialFeaturePackage(spatial_t, feature_package.hand_detected)
             self.classifier.window.update(spatial_feature_package)
         print("Warm up done")
 
-
-
-    def startClassification(self, getFeaturePackage: Callable[[], Any]):
+    def startClassification(self):
         print("Start classification")
         while not self.stop_event.is_set():
-            feature_package = getFeaturePackage()
+            feature_package = self.extractor.get()
             with torch.no_grad():
                 result_t: torch.Tensor = self.classifier(feature_package)
                 result_val, result_class = torch.max(result_t, dim=1)
@@ -50,21 +52,21 @@ class App:
                 # print("Classification Result is " + result_class.name)
                 # print("Tensor: " + str(result_t))
                 # print("")
+            if cv2.waitKey(1) == ESC:
+                print("did scan stop")
+                self.stop_event.set()
 
 
     def start(self):
-        get_feature_package = None
-
+        self.capturer.start()
+        print("capturer started")
         if USE_CUSTOM_MP_MULTITHREADING:
-            get_feature_package = self.extractor.getNext
-            extractor_thread = threading.Thread(target=self.extractor.run, args=(self.capturer.get,), daemon=True)
-            extractor_thread.start()
-        else:
-            get_feature_package = lambda: self.extractor.extract(self.capturer.get())
-        capture_thread = threading.Thread(target=self.capturer.run, daemon=True)
-        capture_thread.start()
-        self.warm_up(get_feature_package)
-        self.startClassification(get_feature_package)
+            self.extractor.start()
+            print("extractor started")
+
+        self.start_event.set()
+        self.warm_up()
+        self.startClassification()
 
 
 

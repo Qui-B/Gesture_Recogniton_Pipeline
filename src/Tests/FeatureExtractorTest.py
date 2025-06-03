@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from src.Config import NUM_LANDMARKS, SAMPLE_PICTURE_PATH
-from src.PipelineModules.FeatureExtractor import FeatureExtractor
+from src.PipelineModules.FeatureExtractor import ExtractorBase
 from src.Utility.Dataclasses import FeaturePackage
 
 
@@ -13,7 +13,7 @@ class LmCapturerTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.stop_event = threading.Event()
-        cls.feature_extractor = FeatureExtractor(stop_event=cls.stop_event)
+        cls.feature_extractor = ExtractorBase(stop_event=cls.stop_event)
         cls.sample_picture = cv2.cvtColor(cv2.imread(SAMPLE_PICTURE_PATH), cv2.COLOR_BGR2RGB)
 
     def test_feature_package_nullcheck(self):
