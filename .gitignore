@@ -1,6 +1,13 @@
 trainingsamples/ #excluded because of filesize
 
+#project environment
+.venv/
 src/.venv/ #use requierements.txt for rebuilding the environment
 
+#idea environment
+.idea/
 src/.idea/
-src/__pycache__/
+
+#pycache
+__pycache__/
+*.pyc
