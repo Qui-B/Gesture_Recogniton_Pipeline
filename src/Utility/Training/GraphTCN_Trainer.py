@@ -1,4 +1,4 @@
-import os
+"""import os
 from typing import NamedTuple
 
 import math
@@ -10,8 +10,8 @@ from pathlib import Path
 
 
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
-from src.PipelineModules.FeatureExtractor import ExtractorBase
-from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER2, NUM_CHANNELS_LAYER1,
+from src.PipelineModules.FeatureExtractor import FeatureExtractor
+from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER1,
                         KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
                         GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE, REL_PORTION_FOR_VALIDATION, REL_PORTION_FOR_TESTING,
                         NUM_EPOCHS, DEVICE)
@@ -43,13 +43,13 @@ def extractWindowFromMP4(feature_extractor, graph_TCN: GraphTcn,  video_file):
     cap.release()
     return feature_packages
 
-"""
+
 Iterates over all subfolders of * corresponding to a gesture class. 
 For each of these folders: extracts frame_deque for all mp4 files and labels it with the corresponding gesture class.
 
 Returns:
     map: List of tuples, where each tuple contains a feature-frame_deque (deque) and a corresponding label (enum).
-"""
+
 def extractTrainingData(training_Sample_path, graph_TCN, feature_extractor):
     path = Path(training_Sample_path)
     sample_dict = dict()
@@ -126,13 +126,13 @@ class GestureDataset(Dataset):  #Wrapper class needed for using the dataloader
     def collate_fn(batch): #needed to avoid batching Error with custom container-datatype (Trainingsample)
         return batch
 
-"""
+
 #Check if pc has a GPU on board to speed up the training process
 if torch.cuda.is_available():
     device = torch.device("cuda:0") #In case of multiple GPU's the first one gets used indicated by 0
 else:
     device = torch.device("cpu")
-"""
+
 
 #Setup model
 model = GraphTcn(
@@ -140,13 +140,12 @@ model = GraphTcn(
     output_size = NUM_OUTPUT_CLASSES,
     gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
     num_channels_layer1 = NUM_CHANNELS_LAYER1,
-    num_channels_layer2 = NUM_CHANNELS_LAYER2,
     kernel_size = KERNEL_SIZE,
     dropout = DROPOUT)
 model.to(DEVICE)
 
 #Setup Feature Extractor (needed for producing the trainingsData)
-feature_extractor = ExtractorBase()
+feature_extractor =
 
 #Setup Datasets
 test_data, validation_data, training_data  = splitTrainingData(extractTrainingData(GESTURE_SAMPLE_PATH, feature_extractor, feature_extractor))
@@ -211,3 +210,5 @@ for epoch in range(NUM_EPOCHS):
     val_losses.append(val_loss)
     print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss}, Validation loss: {val_loss}")
     torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")
+
+"""

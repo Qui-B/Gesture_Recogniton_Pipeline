@@ -62,7 +62,7 @@ class FrameCapturer:
         self.cap.release()
 
     def get(self):
-        return self.frame_queue.get(block=True, timeout=10) #TODO maybe add timeout
+        return self.frame_queue.get(block=True, timeout=2) #TODO maybe add timeout
 
 
     def capture(self):

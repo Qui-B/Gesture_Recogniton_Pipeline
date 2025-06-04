@@ -2,6 +2,7 @@ from torch import torch,nn
 
 #Collection of all setting-constants used by the pipeline modules
 #TODO
+FEAT_RUNNING = True
 ESC = 27
 DEBUG = True
 MP_MODEL_COMPLEXITY = 1
@@ -25,7 +26,7 @@ NUM_LANDMARK_DIMENSIONS = 3
 
 #Used parallelizing mediapipe on different frames
 USE_CUSTOM_MP_MULTITHREADING = True #Gives improvements on higher end systems (doesn't make any sense)
-EXTRACTOR_NUM_THREADS = 6 #Mainly used by the mediapipe extraction
+EXTRACTOR_NUM_THREADS = 1 #Mainly used by the mediapipe extraction
 CLASSIFICATOR_NUM_THREADS = 6
 CLASSIFICATOR_NUM_INTEROP_THREADS = 2
 
@@ -35,7 +36,7 @@ CLASSIFICATOR_NUM_INTEROP_THREADS = 2
 FRAMEWINDOW_LEN = 31
 KERNEL_SIZE = 3
 DROPOUT = 0.1 #TESTING
-DEVICE = 'cuda:0' # or cpu
+DEVICE = 'cuda' # or cpu cuda:0 cuda
 
 GCN_NUM_OUTPUT_CHANNELS = 36
 INPUT_SIZE = NUM_LANDMARKS * GCN_NUM_OUTPUT_CHANNELS + 1 #+1: HAND_DETECTED feature | NUM_LANDMARKS also get used for input_size

@@ -95,7 +95,7 @@ class ExtractStratFactory():
             return ExtractStratFactory.ExtractStratMPSingleThreading(getFrame, debugManager)
 
     class ExtractStratBase(ABC):
-        def __init__(self, getFrame: Callable[[], any], debugManager):
+        def __init__(self, getFrame: Callable[[], any], debugManager: DebugManagerFactory.DebugManagerBase):
             self.getFrame = getFrame
             self.debugManager = debugManager
             self.lastFrame = None
@@ -159,23 +159,29 @@ class ExtractStratFactory():
             extractorThread = threading.Thread(target=self.run)
             extractorThread.start()
 
+        def cancelFutures(self):
+            while not self.feature_package_futures.empty():
+                self.feature_package_futures.get_nowait().cancel()
+
         def run(self):
             self.start_event.wait()
-            with self.executor:
-                while not self.stop_event.is_set():
-                    try:
-                        future = self.executor.submit(self.runThread)
-                        self.feature_package_futures.put(future)
-                    except Exception as e: #TODO
-                        print("[run] Exception:", repr(e))
+            while not self.stop_event.is_set():
+                future = self.executor.submit(self.runThread)
+                try:
+                    self.feature_package_futures.put(future, timeout=1)
+                except queue.Full:
+                    continue
+            self.cancelFutures()
             self.executor.shutdown(wait=True)
-            self.debugManager.close()
+            print("feature extractor stopped")
 
         def runThread(self):
-            frame = self.getFrame() #getFrame inside to thread for low latency
-            feature_package = self.extract(frame)
-            return feature_package, frame
-
+            try:
+                frame = self.getFrame() #getFrame inside to thread for low latency
+                feature_package = self.extract(frame)
+                return feature_package, frame
+            except queue.Empty as e:
+                return
 
         def getNext(self):
             future = self.feature_package_futures.get(block=True, timeout=10)

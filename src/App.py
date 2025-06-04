@@ -1,8 +1,10 @@
+import queue
 import threading
 
 import cv2
 import torch
 from typing import Callable, Any
+import keyboard
 
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
     KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING, ESC
@@ -11,6 +13,7 @@ from src.PipelineModules.FeatureExtractor import FeatureExtractor
 from src.PipelineModules.FrameCapturer import FrameCapturer
 from src.Utility.Dataclasses import SpatialFeaturePackage
 from src.Utility.Enums import Gesture
+
 
 class App:
     def __init__(self):
@@ -44,7 +47,10 @@ class App:
     def startClassification(self):
         print("Start classification")
         while not self.stop_event.is_set():
-            feature_package = self.extractor.get()
+            try:
+                feature_package = self.extractor.get()  # throws Queue.Empty
+            except queue.Empty as e:
+                continue
             with torch.no_grad():
                 result_t: torch.Tensor = self.classifier(feature_package)
                 result_val, result_class = torch.max(result_t, dim=1)
@@ -52,9 +58,12 @@ class App:
                 # print("Classification Result is " + result_class.name)
                 # print("Tensor: " + str(result_t))
                 # print("")
-            if cv2.waitKey(1) == ESC:
-                print("did scan stop")
+            if keyboard.is_pressed('esc'):
+                self.extractor.debugManager.close()
+                print("ESC pressed shutting down...")
                 self.stop_event.set()
+
+        print("classifier stopped")
 
 
     def start(self):
