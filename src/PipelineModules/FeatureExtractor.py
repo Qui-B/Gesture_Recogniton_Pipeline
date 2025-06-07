@@ -1,6 +1,6 @@
 import queue
 import threading
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Callable
 import concurrent.futures
 import mediapipe as mp
@@ -10,9 +10,9 @@ from absl import logging
 
 from ..Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, \
     MIN_TRACKING_CONFIDENCE, DEVICE, EXTRACTOR_NUM_THREADS, USE_CUSTOM_MP_MULTITHREADING, MP_MODEL_COMPLEXITY
-from ..Utility.Dataclasses import FeaturePackage
-from ..Utility.DebugManager import debug_manager
-from ..Utility.Exceptions import NullPointerException
+from src.Utility.Dataclasses import FeaturePackage
+from src.Utility.DebugManager import debug_manager
+from src.Utility.Exceptions import NullPointerException
 
 """
 Extracts landmark-features from an image and captures them in a FeaturePackage.

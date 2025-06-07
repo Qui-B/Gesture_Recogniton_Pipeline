@@ -1,8 +1,8 @@
 trainingsamples/ #excluded because of filesize
 
-#project environment
+#project environment | use requierements.txt for rebuilding the environment
 .venv/
-src/.venv/ #use requierements.txt for rebuilding the environment
+src/.venv/ 
 
 #idea environment
 .idea/
