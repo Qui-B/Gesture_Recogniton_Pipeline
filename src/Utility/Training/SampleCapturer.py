@@ -1,50 +1,56 @@
 import threading
 import cv2
+import keyboard
 import mediapipe as mp
 
-from src.Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, MIN_TRACKING_CONFIDENCE
+from src.Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, MIN_TRACKING_CONFIDENCE, \
+    DEBUG_SHOW_NUM_FRAMES_DROPPED
 from src.PipelineModules.FrameCapturer import FrameCapturer
+from src.Utility.DebugManager import debug_manager
+from src.Utility.Enums import FrameDropLoggingMode
 
 ESC = 27
 def main() -> None:
+        start_event = threading.Event()
         stop_event = threading.Event()
 
-        frame_capturer: FrameCapturer = FrameCapturer(stop_event)
-        fps = frame_capturer.measure_camera_fps(400)
-        print("FPS: " + str(fps))
-
-        actual_width = frame_capturer.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        actual_height = frame_capturer.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        print(f"🔍 Camera resolution: {int(actual_width)}x{int(actual_height)}")
-
-        capture_thread = threading.Thread(target=frame_capturer.run, daemon=True)
-        capture_thread.start()
+        frame_capturer: FrameCapturer = FrameCapturer(start_event, stop_event)
+        fps = frame_capturer.measure_camera_fps(600)
+        print(f"Capture-module initialization succeeded [FPS: {fps}, "
+              f"Resolution: {int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}]")
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Use 'avc1' or 'H264' if needed
-        out = cv2.VideoWriter('cur_sample.mp4', fourcc, 30.0, (640, 360))
+        out = cv2.VideoWriter('cur_sample.mp4', fourcc, int(fps),
+                              (int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
 
-        mp_drawing = mp.solutions.drawing_utils
-        mp_hands = mp.solutions.hands
+        print("Videowriter initialized")
+
         mediapipe = mp.solutions.hands.Hands(
             static_image_mode=STATIC_IMAGE_MODE,
             max_num_hands=MAX_NUM_HANDS,
             min_detection_confidence=MIN_DETECTION_CONFIDENCE,
             min_tracking_confidence=MIN_TRACKING_CONFIDENCE
         )
-        while True:
-            frame = frame_capturer.get()
-            out.write(frame)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            mp_result = mediapipe.process(rgb_frame)
-            if mp_result.multi_hand_landmarks:
-                for hand_landmarks in mp_result.multi_hand_landmarks:
-                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-            cv2.imshow("Debug", frame)
-            if cv2.waitKey(1) == ESC:
-                stop_event.set()
-                capture_thread.join()
-                break
+        frame_capturer.spawn_thread()
+        start_event.set()
+        while not stop_event.is_set():
+            try:
+                frame = frame_capturer.get()
+                out.write(frame)
+                RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                mp_result = mediapipe.process(RGB_frame)
 
+                if mp_result.multi_hand_landmarks:
+                    debug_manager.render(RGB_frame, mp_result.multi_hand_landmarks[0])
+                debug_manager.show(RGB_frame)
+            except Exception:
+                debug_manager.log_framedrop("SampleCapturer.main()")
+            debug_manager.print_framedrops()
+            if keyboard.is_pressed('esc'):
+                print("ESC pressed shutting down...")
+                out.release()
+                stop_event.set()
+                debug_manager.close()
 
 
 

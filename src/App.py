@@ -2,6 +2,7 @@ import queue
 import threading
 import torch
 import keyboard
+import cv2
 
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
     KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING
@@ -19,7 +20,8 @@ class App:
 
         self.capturer: FrameCapturer = FrameCapturer(self.start_event,self.stop_event)
         fps = self.capturer.measure_camera_fps(90)
-        print(f"Capture-module initialization succeeded [FPS: {fps}]")
+        print(f"Capture-module initialization succeeded [FPS: {fps}, "
+              f"Resolution: {int(self.capturer.cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(self.capturer.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}]")
 
         self.extractor = FeatureExtractor(self.capturer.get, self.start_event, self.stop_event)
         print("Extractor-module initialization succeeded")
@@ -57,19 +59,20 @@ class App:
                     # print("")
             except queue.Empty:
                 debug_manager.log_framedrop("App.startClassification() -queue.Empty")
+            debug_manager.print_framedrops()
             if keyboard.is_pressed('esc'):
-                debug_manager.close()
                 print("ESC pressed shutting down...")
                 self.stop_event.set()
-            debug_manager.print_framedrops()
+                debug_manager.close()
+
         print("classifier stopped")
 
 
     def start(self):
-        self.capturer.start()
+        self.capturer.spawn_thread()
         print("Capture-module started")
         if USE_CUSTOM_MP_MULTITHREADING:
-            self.extractor.start()
+            self.extractor.spawn_thread()
             print("Extractor-module started")
 
         self.start_event.set()

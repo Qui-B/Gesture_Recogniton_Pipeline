@@ -3,6 +3,8 @@ import threading
 from abc import ABC
 from typing import Callable
 import concurrent.futures
+
+import cv2
 import mediapipe as mp
 import numpy as np
 import torch
@@ -28,7 +30,7 @@ class FeatureExtractor:
 
         self.extractStrat = ExtractStratFactory.get(getFrame, use_custom_mp_multithreading, start_event, stop_event)
 
-    def start(self):
+    def spawn_thread(self):
         self.extractStrat.start()
 
     def get(self):
@@ -69,7 +71,8 @@ class ExtractStratFactory:
             self.lastFrame = landmark_vector
             return relative_landmark_vector
 
-        def extract(self, rgb_frame):
+        def extract(self, frame):
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # RGB colorscheme needed for landMarc extraction
             mp_result = self.mp.process(rgb_frame)
             landmark_coordinates = np.zeros((21, 3))
             hand_detected = False
@@ -79,7 +82,7 @@ class ExtractStratFactory:
                 for index, landmark in enumerate(landmarks):
                     landmark_coordinates[index] = [landmark.x, landmark.y, landmark.z]
                 hand_detected = True
-                debug_manager.render(rgb_frame, mp_result.multi_hand_landmarks[0])
+                debug_manager.render(frame, mp_result.multi_hand_landmarks[0])
 
             relative_landmark_vector = self.calcRelativeVector(landmark_coordinates)
             feature_package = FeaturePackage(
@@ -89,9 +92,9 @@ class ExtractStratFactory:
             return feature_package
 
         def getNext(self):
-            rgb_frame = self.getFrame()
-            feature_package = self.extract(rgb_frame)
-            debug_manager.show(rgb_frame)
+            frame = self.getFrame()
+            feature_package = self.extract(frame)
+            debug_manager.show(frame)
             return feature_package
 
     class ExtractStratMPSingleThreading(ExtractStratBase):

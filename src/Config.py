@@ -5,11 +5,11 @@ from src.Utility.Enums import FrameDropLoggingMode
 
 #Collection of all setting-constants used by the pipeline modules
 #===========================
-#Global
+#Global #work for both Training (GraphTCN_Trainer) and normal Interference (App)
 #===========================
-#DEBUG and DEBUG_SHOW_IMAGE work for both Training (GraphTCN_Trainer) and normal Interference (App)
+
 DEBUG = True #disables every debug feature, OVERWRITES: DEBUG_SHOW_IMAGE,DEBUG_SHOW_NUM_FRAMES_DROPPED
-DEBUG_SHOW_IMAGE = True
+DEBUG_SHOW_IMAGE = False
 DEBUG_SHOW_NUM_FRAMES_DROPPED = FrameDropLoggingMode.Fast
 #===========================
 #FrameCapturer
