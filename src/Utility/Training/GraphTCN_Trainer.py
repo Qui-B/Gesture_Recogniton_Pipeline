@@ -30,7 +30,7 @@ def extractWindowFromMP4(feature_extractor, graph_TCN: GraphTcn,  video_file):
         cap.release()
         raise WindowLengthException(n_frames, vid_name)
     else:
-        print("Extracted: " + vid_name + " (" + str(n_frames) + "frames)") #DEBUG
+        print("Extracted: " + vid_name + " (" + str(n_frames) + "frames)") #DEBUG_SHOW_IMAGE
 
     feature_packages = []
     for frame_ind in range(0,n_frames):

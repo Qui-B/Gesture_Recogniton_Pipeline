@@ -1,11 +1,14 @@
 from torch import torch,nn
 
+from src.Utility.Enums import FrameDropLoggingMode
+
 #Collection of all setting-constants used by the pipeline modules
-#TODO
-FEAT_RUNNING = True
-ESC = 27
-DEBUG = True
-MP_MODEL_COMPLEXITY = 1
+#===========================
+#Global
+#===========================
+DEBUG = True #disables every debug feature, OVERWRITES: DEBUG_SHOW_IMAGE,DEBUG_SHOW_NUM_FRAMES_DROPPED
+DEBUG_SHOW_IMAGE = True
+DEBUG_SHOW_NUM_FRAMES_DROPPED = FrameDropLoggingMode.Fast
 #===========================
 #FrameCapturer
 #===========================
@@ -17,26 +20,28 @@ SKIP_N_FRAMES = 0 #drop frames inbetween for more consistency
 #===========================
 #LmExtractor
 #===========================
+#Mediapipe
 STATIC_IMAGE_MODE = False
 MAX_NUM_HANDS = 1
 MIN_DETECTION_CONFIDENCE = 0.5
 MIN_TRACKING_CONFIDENCE = 0.5
-NUM_LANDMARKS = 21
-NUM_LANDMARK_DIMENSIONS = 3
+MP_MODEL_COMPLEXITY = 1
 
-#Used parallelizing mediapipe on different frames
+#For using mediapipe simultaneously on different frames
 USE_CUSTOM_MP_MULTITHREADING = True #Gives improvements on higher end systems (doesn't make any sense)
-EXTRACTOR_NUM_THREADS = 1 #Mainly used by the mediapipe extraction
+EXTRACTOR_NUM_THREADS = 2 #Mainly used by the mediapipe extraction
 CLASSIFICATOR_NUM_THREADS = 6
 CLASSIFICATOR_NUM_INTEROP_THREADS = 2
 
+NUM_LANDMARKS = 21
+NUM_LANDMARK_DIMENSIONS = 3
 #===========================
 #Classificator
 #===========================
 FRAMEWINDOW_LEN = 31
 KERNEL_SIZE = 3
 DROPOUT = 0.1 #TESTING
-DEVICE = 'cuda' # or cpu cuda:0 cuda
+DEVICE = 'cuda:0' # cpu | cuda:0 | cuda
 
 GCN_NUM_OUTPUT_CHANNELS = 36
 INPUT_SIZE = NUM_LANDMARKS * GCN_NUM_OUTPUT_CHANNELS + 1 #+1: HAND_DETECTED feature | NUM_LANDMARKS also get used for input_size

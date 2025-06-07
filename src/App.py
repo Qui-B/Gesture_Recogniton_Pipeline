@@ -1,30 +1,29 @@
 import queue
 import threading
-
-import cv2
 import torch
-from typing import Callable, Any
 import keyboard
 
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
-    KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING, ESC
+    KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
 from src.PipelineModules.FeatureExtractor import FeatureExtractor
 from src.PipelineModules.FrameCapturer import FrameCapturer
 from src.Utility.Dataclasses import SpatialFeaturePackage
+from src.Utility.DebugManager import debug_manager
 from src.Utility.Enums import Gesture
-
 
 class App:
     def __init__(self):
         self.start_event = threading.Event()
         self.stop_event = threading.Event()
+
         self.capturer: FrameCapturer = FrameCapturer(self.start_event,self.stop_event)
-        print("main t0")
         fps = self.capturer.measure_camera_fps(90)
         print(f"Capture-module initialization succeeded [FPS: {fps}]")
+
         self.extractor = FeatureExtractor(self.capturer.get, self.start_event, self.stop_event)
         print("Extractor-module initialization succeeded")
+
         self.classifier = GraphTcn(
             input_size=INPUT_SIZE,
             output_size=NUM_OUTPUT_CLASSES,
@@ -49,29 +48,29 @@ class App:
         while not self.stop_event.is_set():
             try:
                 feature_package = self.extractor.get()  # throws Queue.Empty
-            except queue.Empty as e:
-                continue
-            with torch.no_grad():
-                result_t: torch.Tensor = self.classifier(feature_package)
-                result_val, result_class = torch.max(result_t, dim=1)
-                result_class = Gesture(result_class.item())
-                # print("Classification Result is " + result_class.name)
-                # print("Tensor: " + str(result_t))
-                # print("")
+                with torch.no_grad():
+                    result_t: torch.Tensor = self.classifier(feature_package)
+                    result_val, result_class = torch.max(result_t, dim=1)
+                    result_class = Gesture(result_class.item())
+                    # print("Classification Result is " + result_class.name)
+                    # print("Tensor: " + str(result_t))
+                    # print("")
+            except queue.Empty:
+                debug_manager.log_framedrop("App.startClassification() -queue.Empty")
             if keyboard.is_pressed('esc'):
-                self.extractor.debugManager.close()
+                debug_manager.close()
                 print("ESC pressed shutting down...")
                 self.stop_event.set()
-
+            debug_manager.print_framedrops()
         print("classifier stopped")
 
 
     def start(self):
         self.capturer.start()
-        print("capturer started")
+        print("Capture-module started")
         if USE_CUSTOM_MP_MULTITHREADING:
             self.extractor.start()
-            print("extractor started")
+            print("Extractor-module started")
 
         self.start_event.set()
         self.warm_up()

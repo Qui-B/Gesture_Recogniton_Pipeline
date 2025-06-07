@@ -8,3 +8,8 @@ class Gesture(Enum):
     SwipeRight = 4
     ZoomIn = 5
     ZoomOut = 6
+
+class FrameDropLoggingMode(Enum):
+    Quality = 0
+    Fast = 1
+    OFF = 2
