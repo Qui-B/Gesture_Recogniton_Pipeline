@@ -1,5 +1,5 @@
-"""import os
-from typing import NamedTuple
+import os
+import threading
 
 import math
 import numpy as np
@@ -10,19 +10,20 @@ from pathlib import Path
 
 
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
-from src.PipelineModules.FeatureExtractor import FeatureExtractor
 from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER1,
                         KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
                         GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE, REL_PORTION_FOR_VALIDATION, REL_PORTION_FOR_TESTING,
                         NUM_EPOCHS, DEVICE)
+from src.PipelineModules.FeatureExtractor import FeatureExtractor
 from src.Utility.Dataclasses import TrainingSample
 from src.Utility.Enums import Gesture
 from src.Utility.Exceptions import WindowLengthException, UnsuccessfulCaptureException
+from src.Utility.DebugManager import debug_manager
 
 #TODO implement threading for trainer
 
 #Rewrite to fit the forward method
-def extractWindowFromMP4(feature_extractor, graph_TCN: GraphTcn,  video_file):
+def extract_window_from_mp4(feature_extractor, graph_TCN: GraphTcn, video_file):
     cap = cv2.VideoCapture(str(video_file))
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     vid_name = os.path.basename(video_file)
@@ -38,19 +39,19 @@ def extractWindowFromMP4(feature_extractor, graph_TCN: GraphTcn,  video_file):
         if not successful_read:
             raise UnsuccessfulCaptureException
 
-        feature_packages.append(feature_extractor.extract(frame))
-
+        feature_packages.append(feature_extractor.extractStrat.extract(frame))
+        debug_manager.show(frame)
     cap.release()
     return feature_packages
 
-
+"""
 Iterates over all subfolders of * corresponding to a gesture class. 
 For each of these folders: extracts frame_deque for all mp4 files and labels it with the corresponding gesture class.
 
 Returns:
     map: List of tuples, where each tuple contains a feature-frame_deque (deque) and a corresponding label (enum).
-
-def extractTrainingData(training_Sample_path, graph_TCN, feature_extractor):
+"""
+def extract_training_data(training_Sample_path, graph_TCN, feature_extractor): #no multihreading support to for debug purposes
     path = Path(training_Sample_path)
     sample_dict = dict()
     print("Extract Datasamples...")
@@ -65,7 +66,7 @@ def extractTrainingData(training_Sample_path, graph_TCN, feature_extractor):
             if not video_file.is_file() or video_file.suffix not in ['.mp4']: #filter out everything that is not a mp4 file
                 continue
             try:
-                feature_packages = extractWindowFromMP4(feature_extractor, graph_TCN, video_file)
+                feature_packages = extract_window_from_mp4(feature_extractor, graph_TCN, video_file)
                 label_t = torch.tensor(cur_label.value, dtype=torch.long)
                 cur_training_sample = TrainingSample(feature_packages, label_t)
                 label_samples.append(cur_training_sample)
@@ -75,12 +76,12 @@ def extractTrainingData(training_Sample_path, graph_TCN, feature_extractor):
 
     return sample_dict
 
-def labelToTensor(cur_label: Gesture):
+def label_to_tensor(cur_label: Gesture):
     output_t = torch.full((NUM_OUTPUT_CLASSES,) , -1, device=DEVICE) #No second dimension next to output classes to get a 1D tensor
     output_t[cur_label.value] = 1
     return output_t
 
-def ranElemsFromList(sample_list, num_elements):
+def ran_elems_from_list(sample_list, num_elements):
     output_elems = []
 
     indices = np.random.choice(len(sample_list), size=num_elements,
@@ -90,7 +91,7 @@ def ranElemsFromList(sample_list, num_elements):
         output_elems.append(sample_list.pop(index))
     return output_elems
 
-def splitTrainingData(sample_dict):
+def split_training_data(sample_dict):
     training_list = []
     test_list = []
     validation_list = []
@@ -100,8 +101,8 @@ def splitTrainingData(sample_dict):
         num_test_samples = math.floor(len(samples) * REL_PORTION_FOR_TESTING)
         num_validation_samples = math.floor(len(samples) * REL_PORTION_FOR_VALIDATION)
 
-        test_list.extend(ranElemsFromList(cur_samples, num_test_samples))
-        validation_list.extend(ranElemsFromList(cur_samples, num_validation_samples))
+        test_list.extend(ran_elems_from_list(cur_samples, num_test_samples))
+        validation_list.extend(ran_elems_from_list(cur_samples, num_validation_samples))
         training_list.extend(cur_samples)
     print("\nDataset split:")
     print("==========================================")
@@ -126,89 +127,85 @@ class GestureDataset(Dataset):  #Wrapper class needed for using the dataloader
     def collate_fn(batch): #needed to avoid batching Error with custom container-datatype (Trainingsample)
         return batch
 
+def main() -> None:
+    #Check if pc has a GPU on board to speed up the training process
 
-#Check if pc has a GPU on board to speed up the training process
-if torch.cuda.is_available():
-    device = torch.device("cuda:0") #In case of multiple GPU's the first one gets used indicated by 0
-else:
-    device = torch.device("cpu")
+    #Setup model
+    model = GraphTcn(
+        input_size = INPUT_SIZE,
+        output_size = NUM_OUTPUT_CLASSES,
+        gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
+        num_channels_layer1 = NUM_CHANNELS_LAYER1,
+        kernel_size = KERNEL_SIZE,
+        dropout = DROPOUT)
+    model.to(DEVICE)
 
+    #Setup Feature Extractor (needed for producing the trainingsData)
+    feature_extractor = FeatureExtractor(None,threading.Event(),threading.Event(), False)
 
-#Setup model
-model = GraphTcn(
-    input_size = INPUT_SIZE,
-    output_size = NUM_OUTPUT_CLASSES,
-    gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
-    num_channels_layer1 = NUM_CHANNELS_LAYER1,
-    kernel_size = KERNEL_SIZE,
-    dropout = DROPOUT)
-model.to(DEVICE)
+    #Setup Datasets
+    test_data, validation_data, training_data  = split_training_data(extract_training_data(GESTURE_SAMPLE_PATH, feature_extractor, feature_extractor))
 
-#Setup Feature Extractor (needed for producing the trainingsData)
-feature_extractor =
+    test_dataset = GestureDataset(test_data)
+    validation_dataset = GestureDataset(validation_data)
+    training_dataset = GestureDataset(training_data)
 
-#Setup Datasets
-test_data, validation_data, training_data  = splitTrainingData(extractTrainingData(GESTURE_SAMPLE_PATH, feature_extractor, feature_extractor))
+    test_dataLoader = DataLoader(test_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
+    validation_dataLoader = DataLoader(validation_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
+    training_dataLoader = DataLoader(training_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn) #shuffle because datasets are still grouped in labels
 
-test_dataset = GestureDataset(test_data)
-validation_dataset = GestureDataset(validation_data)
-training_dataset = GestureDataset(training_data)
+    #Setup training parameters
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-test_dataLoader = DataLoader(test_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
-validation_dataLoader = DataLoader(validation_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
-training_dataLoader = DataLoader(training_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn) #shuffle because datasets are still grouped in labels
+    #Start training
+    train_losses, val_losses = [], []
+    batch: list[TrainingSample] = []
 
-#Setup training parameters
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-
-#Start training
-train_losses, val_losses = [], []
-batch: list[TrainingSample] = []
-
-for epoch in range(NUM_EPOCHS):
-    #training phase
-    model.train()
-    running_loss = 0.0
-    for batch in training_dataLoader: #only one sample in this case as BATCH_SIZE is 1
-        optimizer.zero_grad()
-        outputs = []
-        labels = []
-        for training_sample in batch:#Class: TrainingSample
-            #print(type(training_sample))
-            #print(type(training_sample.feature_packages))
-            prediction = model(*training_sample.feature_packages)
-            outputs.append(prediction)
-            labels.append(training_sample.label)
-        outputs = torch.cat(outputs).to(DEVICE)
-        labels = torch.stack(labels).to(DEVICE)
-        #print(str(outputs.shape))
-        #print(str(labels))
-        loss = criterion(outputs,labels)
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item() * len(labels)
-    train_loss = running_loss / len(training_dataLoader.dataset)
-    train_losses.append(train_loss)
-    #validation phase
-    model.eval()
-    running_loss = 0.0
-    outputs = []
-    with torch.no_grad():
-        for batch in validation_dataLoader:
+    for epoch in range(NUM_EPOCHS):
+        #training phase
+        model.train()
+        running_loss = 0.0
+        for batch in training_dataLoader: #only one sample in this case as BATCH_SIZE is 1
+            optimizer.zero_grad()
             outputs = []
             labels = []
-            for training_sample in batch:  # Class: TrainingSample
+            for training_sample in batch:#Class: TrainingSample
+                #print(type(training_sample))
+                #print(type(training_sample.feature_packages))
                 prediction = model(*training_sample.feature_packages)
                 outputs.append(prediction)
                 labels.append(training_sample.label)
             outputs = torch.cat(outputs).to(DEVICE)
             labels = torch.stack(labels).to(DEVICE)
-            loss = criterion(outputs, labels)
+            #print(str(outputs.shape))
+            #print(str(labels))
+            loss = criterion(outputs,labels)
+            loss.backward()
+            optimizer.step()
             running_loss += loss.item() * len(labels)
-    val_loss = running_loss / len(validation_dataLoader.dataset)
-    val_losses.append(val_loss)
-    print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss}, Validation loss: {val_loss}")
-    torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")
+        train_loss = running_loss / len(training_dataLoader.dataset)
+        train_losses.append(train_loss)
+        #validation phase
+        model.eval()
+        running_loss = 0.0
+        outputs = []
+        with torch.no_grad():
+            for batch in validation_dataLoader:
+                outputs = []
+                labels = []
+                for training_sample in batch:  # Class: TrainingSample
+                    prediction = model(*training_sample.feature_packages)
+                    outputs.append(prediction)
+                    labels.append(training_sample.label)
+                outputs = torch.cat(outputs).to(DEVICE)
+                labels = torch.stack(labels).to(DEVICE)
+                loss = criterion(outputs, labels)
+                running_loss += loss.item() * len(labels)
+        val_loss = running_loss / len(validation_dataLoader.dataset)
+        val_losses.append(val_loss)
+        print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss}, Validation loss: {val_loss}")
+        torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")
 
-"""
+if __name__ == "__main__":
+    main()

@@ -1,3 +1,4 @@
+import os
 from torch import torch,nn
 
 from src.Utility.Enums import FrameDropLoggingMode
@@ -6,6 +7,7 @@ from src.Utility.Enums import FrameDropLoggingMode
 #===========================
 #Global
 #===========================
+#DEBUG and DEBUG_SHOW_IMAGE work for both Training (GraphTCN_Trainer) and normal Interference (App)
 DEBUG = True #disables every debug feature, OVERWRITES: DEBUG_SHOW_IMAGE,DEBUG_SHOW_NUM_FRAMES_DROPPED
 DEBUG_SHOW_IMAGE = True
 DEBUG_SHOW_NUM_FRAMES_DROPPED = FrameDropLoggingMode.Fast
@@ -59,7 +61,7 @@ EDGE_INDEX = torch.tensor([
 #Classficator Training
 #===========================
 BATCH_SIZE = 1 #for inference use BATCH_SIZE = 1
-GESTURE_SAMPLE_PATH = r'D:\Arbeit\_Studium (Derzeit)\bsc\Src\Trainingsamples' #Parentfolder of the training-samples for the network
+GESTURE_SAMPLE_PATH =  os.path.join(os.path.dirname(__file__), "..", "trainingsamples")
 LOSS_FUNCTION = nn.CrossEntropyLoss()
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 35
@@ -69,4 +71,4 @@ REL_PORTION_FOR_TESTING = 0.15
 #============================
 #Unit-testing
 #============================
-SAMPLE_PICTURE_PATH = r'D:\Arbeit\_Studium (Derzeit)\bsc\Src\Hand_Recognition\Tests\TestImage.jpg'
+SAMPLE_PICTURE_PATH = os.path.join(os.path.dirname(__file__), "..", "Tests", "Training", "TestImage.jpg")
