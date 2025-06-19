@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from src.Config import NUM_LANDMARKS, SAMPLE_PICTURE_PATH
-from src.PipelineModules.FeatureExtractor import ExtractorBase
+from src.PipelineModules.Extractor.FeatureExtractor import ExtractorBase
 from src.Utility.Dataclasses import FeaturePackage
 
 

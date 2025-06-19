@@ -2,8 +2,11 @@ import os
 import threading
 
 import math
+import time
+
 import numpy as np
 from torch import torch, nn
+from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader, Dataset
 import cv2
 from pathlib import Path
@@ -12,13 +15,14 @@ from pathlib import Path
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
 from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER1,
                         KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
-                        GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE, REL_PORTION_FOR_VALIDATION, REL_PORTION_FOR_TESTING,
-                        NUM_EPOCHS, DEVICE)
-from src.PipelineModules.FeatureExtractor import FeatureExtractor
+                        GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE_INIT, REL_PORTION_FOR_VALIDATION,
+                        REL_PORTION_FOR_TESTING,
+                        NUM_EPOCHS, DEVICE, SLEEP_BETWEEN_SAMPLES_S, LEARNING_RATE_STEPS, LEARNING_RATE_DECAY_FACTOR)
+from src.PipelineModules.Extractor import FeatureExtractor
 from src.Utility.Dataclasses import TrainingSample
+from src.Utility.DebugManager.DebugManager import debug_manager
 from src.Utility.Enums import Gesture
 from src.Utility.Exceptions import WindowLengthException, UnsuccessfulCaptureException
-from src.Utility.DebugManager import debug_manager
 
 #TODO implement threading for trainer
 
@@ -39,8 +43,15 @@ def extract_window_from_mp4(feature_extractor, graph_TCN: GraphTcn, video_file):
         if not successful_read:
             raise UnsuccessfulCaptureException
 
-        feature_packages.append(feature_extractor.extractStrat.extract(frame))
+        feature_package = feature_extractor.extractStrat.extract(frame)
+        # print("Vector: " + str(feature_package.lm_coordinates)) #TODO maybe implement as setting
+        #
+        # avg_abs_value = feature_package.lm_coordinates.abs().mean()
+        # print("Mean change: " + str(avg_abs_value.item()))
+
+        feature_packages.append(feature_package)
         debug_manager.show(frame)
+        time.sleep(SLEEP_BETWEEN_SAMPLES_S)
     cap.release()
     return feature_packages
 
@@ -141,7 +152,7 @@ def main() -> None:
     model.to(DEVICE)
 
     #Setup Feature Extractor (needed for producing the trainingsData)
-    feature_extractor = FeatureExtractor(None,threading.Event(),threading.Event(), False)
+    feature_extractor = FeatureExtractor(None, threading.Event(), threading.Event(), False)
 
     #Setup Datasets
     test_data, validation_data, training_data  = split_training_data(extract_training_data(GESTURE_SAMPLE_PATH, feature_extractor, feature_extractor))
@@ -156,7 +167,8 @@ def main() -> None:
 
     #Setup training parameters
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE_INIT)
+    scheduler = StepLR(optimizer, step_size=LEARNING_RATE_STEPS, gamma=LEARNING_RATE_DECAY_FACTOR)  # Decays LR by 50% every 10 epochs
 
     #Start training
     train_losses, val_losses = [], []
@@ -204,8 +216,13 @@ def main() -> None:
                 running_loss += loss.item() * len(labels)
         val_loss = running_loss / len(validation_dataLoader.dataset)
         val_losses.append(val_loss)
-        print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss}, Validation loss: {val_loss}")
-        torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")
+        scheduler.step()
+        correct_preds = (outputs.argmax(dim=1) == labels).sum().item()
+        accuracy = correct_preds / len(labels)
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f"Epoch {epoch + 1} learning rate: {current_lr:.6f}")
+        print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss:.4f}, Validation loss: {val_loss:.4f}")
+    torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")
 
 if __name__ == "__main__":
     main()

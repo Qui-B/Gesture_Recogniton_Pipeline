@@ -5,7 +5,7 @@ import torch
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, NUM_CHANNELS_LAYER2, \
     KERNEL_SIZE, DROPOUT, SAMPLE_PICTURE_PATH, BATCH_SIZE, FRAMEWINDOW_LEN, DEVICE
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
-from src.PipelineModules.FeatureExtractor import ExtractorBase, FeaturePackage
+from src.PipelineModules.Extractor.FeatureExtractor import ExtractorBase, FeaturePackage
 from src.Utility.Dataclasses import SpatialFeaturePackage
 
 #TODO REWRITE TO FIT WITH CURRENT IMPL

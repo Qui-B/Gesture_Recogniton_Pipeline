@@ -5,7 +5,7 @@ import time
 import cv2
 
 from src.Config import IMAGE_SOURCE, SKIP_N_FRAMES, IMAGE_HEIGHT, IMAGE_WIDTH
-from src.Utility.DebugManager import debug_manager
+from src.Utility.DebugManager.DebugManager import debug_manager
 from src.Utility.Exceptions import UnsuccessfulCaptureException
 
 
@@ -38,7 +38,7 @@ class FrameCapturer:
 
     def cap_init(self):
         # set camera and frame dimensions
-        self.cap = cv2.VideoCapture(IMAGE_SOURCE)
+        self.cap = cv2.VideoCapture(IMAGE_SOURCE) #TODO remove cap dshow
         self.cap.set(cv2.CAP_PROP_FPS, 1000)  # helps in some cases if the camera defaults to lower fps
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMAGE_WIDTH)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMAGE_HEIGHT)

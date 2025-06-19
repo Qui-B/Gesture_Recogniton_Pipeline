@@ -11,18 +11,24 @@ from src.Utility.Dataclasses import SpatialFeaturePackage
 class FrameWindow:
 
     """
-    Stores the most recent landmark vectors in a deque which serves as a input for the classification tcp. Used by GraphTCN.
+    Stores the most recent landmark vectors in a deque which serves as input for the classification tcp. Used by GraphTCN.
     """
     def __init__(self) -> None:
         self.frame_deque = deque(maxlen=FRAMEWINDOW_LEN)
-        self.FLATTENED_T_LENGTH = NUM_LANDMARKS * GCN_NUM_OUTPUT_CHANNELS + 1 #need for tensor dimension remapping in update frame_deque
-                                                                                      #+1 to store the hand detected flag
+        self.FLATTENED_T_LENGTH = NUM_LANDMARKS * GCN_NUM_OUTPUT_CHANNELS + 1 #need for tensor dimension remapping in update frame_deque                                                                        #+1 to store the hand detected flag
 
     def flattenSpatialFP(self, spatial_feature_pkg: SpatialFeaturePackage):
         window_t = torch.zeros(self.FLATTENED_T_LENGTH, device=DEVICE)
         window_t[0] = float(spatial_feature_pkg.hand_detected)
         window_t[1:] = spatial_feature_pkg.spatial_lm_t.view(-1)  # flatten by concatenating rows (HAND_DETECTED_ELEM,x0,y0,z0,x1,y1,z1,...,x20,y20,z20)
         return window_t
+
+    # def calcRelativeVector(self, landmark_vector):
+    #     relative_landmark_vector = np.zeros((21, 3))
+    #     if self.lastFrame is not None:
+    #         relative_landmark_vector[:, :] = landmark_vector[:, :] - self.lastFrame[:, :]
+    #     self.lastFrame = landmark_vector
+    #     return relative_landmark_vector
 
     def update(self, spatial_feature_pkg: SpatialFeaturePackage):
         flattened_t = self.flattenSpatialFP(spatial_feature_pkg)

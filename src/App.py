@@ -7,11 +7,12 @@ import cv2
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
     KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
-from src.PipelineModules.FeatureExtractor import FeatureExtractor
+from src.PipelineModules.EventHandler import EventHandlerFactory
+from src.PipelineModules.Extractor.FeatureExtractor import FeatureExtractor
 from src.PipelineModules.FrameCapturer import FrameCapturer
 from src.Utility.Dataclasses import SpatialFeaturePackage
-from src.Utility.DebugManager import debug_manager
-from src.Utility.Enums import Gesture
+from src.Utility.DebugManager.DebugManager import debug_manager
+
 
 class App:
     def __init__(self):
@@ -33,8 +34,11 @@ class App:
             num_channels_layer1=NUM_CHANNELS_LAYER1,
             kernel_size=KERNEL_SIZE,
             dropout=DROPOUT).to(DEVICE)
-        # classificator.load_state_dict(torch.load("PipelineModules/Classificator/trained_weights.pth")) TODO UNCOMMENT!!!!!!
+        self.classifier.load_state_dict(torch.load("PipelineModules/Classificator/trained_weights.pth"))
         print("Classifier-module initialization succeeded")
+
+        self.event_handler = EventHandlerFactory.get()
+        print("Eventhandler-module initialization succeeded")
 
     def warm_up(self):
         print("Starting warm up...")
@@ -53,16 +57,20 @@ class App:
                 with torch.no_grad():
                     result_t: torch.Tensor = self.classifier(feature_package)
                     result_val, result_class = torch.max(result_t, dim=1)
-                    result_class = Gesture(result_class.item())
-                    # print("Classification Result is " + result_class.name)
-                    # print("Tensor: " + str(result_t))
-                    # print("")
+                    self.event_handler.handle(result_val.item(), result_class.item())
+
+                    # if result_class != Gesture.Nothing and result_val > 0.6: TODO delete one day...
+                    #     print("Classification Result is " + result_class.name)
+                    #     print("Tensor: " + str(result_t))
+                    #     print("")
             except queue.Empty:
                 debug_manager.log_framedrop("App.startClassification() -queue.Empty")
             debug_manager.print_framedrops()
             if keyboard.is_pressed('esc'):
                 print("ESC pressed shutting down...")
-                self.stop_event.set()
+                self.stop_event.set() #stops capturer and extractor
+                self.event_handler.close()
+
                 debug_manager.close()
 
         print("classifier stopped")

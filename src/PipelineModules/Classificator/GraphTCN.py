@@ -2,7 +2,7 @@ from torch import torch,nn
 from torch_geometric.nn.conv import GCNConv
 
 from src.PipelineModules.Classificator.FrameWindow import FrameWindow
-from src.Config import EDGE_INDEX, NUM_LANDMARK_DIMENSIONS
+from src.Config import EDGE_INDEX, NUM_LANDMARK_DIMENSIONS, DEVICE
 from src.PipelineModules.Classificator.HelperClasses import TemporalConvNet
 from src.Utility.Dataclasses import FeaturePackage, SpatialFeaturePackage
 
@@ -24,7 +24,7 @@ class GraphTcn(nn.Module):
         self.softmax = nn.Softmax(dim=1)
         self.init_weights()
 
-
+        self.last_t = torch.zeros((21, 3), device=DEVICE)
 
 
     def init_weights(self):
@@ -38,13 +38,18 @@ class GraphTcn(nn.Module):
         x = self.gcn(landmark_coordinates, EDGE_INDEX)
         return torch.tanh(x)
 
+    def normalize(self, input_t: torch.Tensor):
+        relative_t = input_t - self.last_t
+        self.last_t = input_t #CAREFULl no Copy
+        return relative_t
 
 
 
     def forward(self, *feature_pkgs: FeaturePackage): #maybe add bool to decide for training or interference for more clarity and better runtime
         if len(feature_pkgs) == 1: #case inference
             feature_pkg = feature_pkgs[0]
-            spatial_t = self.extractSpatialFeatures(feature_pkg.lm_coordinates)
+            normalized_t = self.normalize(feature_pkg.lm_coordinates)
+            spatial_t = self.extractSpatialFeatures(normalized_t)
             spatial_feature_pkg = SpatialFeaturePackage(spatial_t, feature_pkg.hand_detected)
 
             self.window.update(spatial_feature_pkg)
@@ -56,7 +61,8 @@ class GraphTcn(nn.Module):
         else: #case: training
             for feature_pkg in feature_pkgs:
                 #print(type(feature_pkg))
-                spatial_t = self.extractSpatialFeatures(feature_pkg.lm_coordinates)
+                normalized_t = self.normalize(feature_pkg.lm_coordinates)
+                spatial_t = self.extractSpatialFeatures(normalized_t)
                 spatial_feature_pkg = SpatialFeaturePackage(spatial_t, feature_pkg.hand_detected)
 
                 self.window.update(spatial_feature_pkg)

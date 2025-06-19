@@ -6,7 +6,7 @@ import mediapipe as mp
 from src.Config import STATIC_IMAGE_MODE, MAX_NUM_HANDS, MIN_DETECTION_CONFIDENCE, MIN_TRACKING_CONFIDENCE, \
     DEBUG_SHOW_NUM_FRAMES_DROPPED
 from src.PipelineModules.FrameCapturer import FrameCapturer
-from src.Utility.DebugManager import debug_manager
+from src.Utility.DebugManager.DebugManager import debug_manager
 from src.Utility.Enums import FrameDropLoggingMode
 
 ESC = 27
@@ -20,7 +20,7 @@ def main() -> None:
               f"Resolution: {int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}]")
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Use 'avc1' or 'H264' if needed
-        out = cv2.VideoWriter('cur_sample.mp4', fourcc, int(fps),
+        out = cv2.VideoWriter('sample_droid_cam_dcap.mp4', fourcc, int(fps),
                               (int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(frame_capturer.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
 
         print("Videowriter initialized")
@@ -41,8 +41,8 @@ def main() -> None:
                 mp_result = mediapipe.process(RGB_frame)
 
                 if mp_result.multi_hand_landmarks:
-                    debug_manager.render(RGB_frame, mp_result.multi_hand_landmarks[0])
-                debug_manager.show(RGB_frame)
+                    debug_manager.render(frame, mp_result.multi_hand_landmarks[0])
+                debug_manager.show(frame)
             except Exception:
                 debug_manager.log_framedrop("SampleCapturer.main()")
             debug_manager.print_framedrops()
