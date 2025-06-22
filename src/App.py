@@ -5,7 +5,7 @@ import keyboard
 import cv2
 
 from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
-    KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING
+    KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING, WEIGHTS_FILE_PATH
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
 from src.PipelineModules.EventHandler import EventHandlerFactory
 from src.PipelineModules.Extractor.FeatureExtractor import FeatureExtractor
@@ -34,7 +34,7 @@ class App:
             num_channels_layer1=NUM_CHANNELS_LAYER1,
             kernel_size=KERNEL_SIZE,
             dropout=DROPOUT).to(DEVICE)
-        self.classifier.load_state_dict(torch.load("PipelineModules/Classificator/trained_weights.pth"))
+        self.classifier.load_state_dict(torch.load(WEIGHTS_FILE_PATH))
         print("Classifier-module initialization succeeded")
 
         self.event_handler = EventHandlerFactory.get()

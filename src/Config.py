@@ -1,6 +1,8 @@
 import os
 
+import cv2
 from torch import torch,nn
+
 from src.Utility.Enums import FrameDropLoggingMode
 
 #Collection of all setting-constants used by the pipeline modules
@@ -17,7 +19,8 @@ DEBUG_SHOW_NUM_FRAMES_DROPPED = FrameDropLoggingMode.OFF
 #===========================
 #FrameCapturer
 #===========================
-IMAGE_SOURCE = 1 #droid cam: 0 webcam: 1
+IMAGE_SOURCE = 0 #droid cam: 0 webcam: 1
+CAPTURE_BACKEND = cv2.CAP_MSMF #cv2.CAP_DSHOW | cv2.CAP_MSMF | cv2.CAP_ANY
 IMAGE_WIDTH = 1280
 IMAGE_HEIGHT = 720
 SKIP_N_FRAMES = 0 #drop frames inbetween for more consistency
@@ -65,6 +68,8 @@ EDGE_INDEX = torch.tensor([
 [0,5,9,13,17,  0, 1, 2, 3,   5, 6, 7,   9,10,11,    13,14,15,   17,18,19],
 [5,9,13,17,0,  1, 2, 3, 4,   6, 7, 8,   10,11,12,   14,15,16,   18,19,20]
 ], dtype=torch.long, device=DEVICE) #long requested by gcn
+
+WEIGHTS_FILE_PATH = os.path.join(os.path.dirname(__file__), "PipelineModules", "Classificator", "trained_weights.pth")
 
 
 #===========================
