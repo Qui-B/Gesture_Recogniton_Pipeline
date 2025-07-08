@@ -5,6 +5,10 @@ from torch import torch,nn
 
 from src.Utility.Enums import FrameDropLoggingMode
 
+
+FRAME_CAPTURER_QUEUE_SIZE = 6
+
+
 #Collection of all setting-constants used by the pipeline modules
 #===========================
 #Global #work for both Training (GraphTCN_Trainer) and normal Interference (App)
@@ -95,6 +99,10 @@ LEARNING_RATE_STEPS = 5
 NUM_EPOCHS = 25 #35
 REL_PORTION_FOR_VALIDATION = 0.15
 REL_PORTION_FOR_TESTING = 0.15
+
+USE_ARTIFICIAL_SAMPLES = False
+ARTIFICIAL_SAMPLES_NOISE = 0.0045
+ARTIFICIAL_SAMPLES_PER_SAMPLE = 5
 
 #============================
 #Unit-testing

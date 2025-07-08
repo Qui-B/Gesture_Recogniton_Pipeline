@@ -17,16 +17,16 @@ from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER1
                         KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
                         GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE_INIT, REL_PORTION_FOR_VALIDATION,
                         REL_PORTION_FOR_TESTING,
-                        NUM_EPOCHS, DEVICE, SLEEP_BETWEEN_SAMPLES_S, LEARNING_RATE_STEPS, LEARNING_RATE_DECAY_FACTOR)
-from src.PipelineModules.Extractor import FeatureExtractor
-from src.Utility.Dataclasses import TrainingSample
+                        NUM_EPOCHS, DEVICE, SLEEP_BETWEEN_SAMPLES_S, LEARNING_RATE_STEPS, LEARNING_RATE_DECAY_FACTOR, USE_ARTIFICIAL_SAMPLES, ARTIFICIAL_SAMPLES_PER_SAMPLE)
+from src.PipelineModules.Extractor.FeatureExtractor import FeatureExtractor
+
+from src.Utility.Dataclasses import TrainingSample, FeaturePackage
 from src.Utility.DebugManager.DebugManager import debug_manager
 from src.Utility.Enums import Gesture
 from src.Utility.Exceptions import WindowLengthException, UnsuccessfulCaptureException
 
 #TODO implement threading for trainer
 
-#Rewrite to fit the forward method
 def extract_window_from_mp4(feature_extractor, graph_TCN: GraphTcn, video_file):
     cap = cv2.VideoCapture(str(video_file))
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -74,17 +74,21 @@ def extract_training_data(training_Sample_path, graph_TCN, feature_extractor): #
         cur_label = Gesture[folder.name] #frame_deque-label
         label_samples = []
         for video_file in folder.iterdir():
-            if not video_file.is_file() or video_file.suffix not in ['.mp4']: #filter out everything that is not a mp4 file
+            if not video_file.is_file() or video_file.suffix not in ['.mp4','.avi', '.mov']: #filter out everything that is not a mp4 file
                 continue
             try:
                 feature_packages = extract_window_from_mp4(feature_extractor, graph_TCN, video_file)
                 label_t = torch.tensor(cur_label.value, dtype=torch.long)
                 cur_training_sample = TrainingSample(feature_packages, label_t)
                 label_samples.append(cur_training_sample)
+
+                if USE_ARTIFICIAL_SAMPLES:
+                    for i in range(0, ARTIFICIAL_SAMPLES_PER_SAMPLE):
+                        label_samples.append(cur_training_sample.applyNoise())
+
             except WindowLengthException as e:
                 print(e.message)
         sample_dict[cur_label] = label_samples
-
     return sample_dict
 
 def label_to_tensor(cur_label: Gesture):
@@ -222,7 +226,7 @@ def main() -> None:
         current_lr = optimizer.param_groups[0]['lr']
         print(f"Epoch {epoch + 1} learning rate: {current_lr:.6f}")
         print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss:.4f}, Validation loss: {val_loss:.4f}")
-    torch.save(model.state_dict(), "../../PipelineModules/Classificator/trained_weights.pth")
+    torch.save(model.state_dict(), "../PipelineModules/Classificator/trained_weights.pth")
 
 if __name__ == "__main__":
     main()
