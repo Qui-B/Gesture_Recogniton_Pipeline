@@ -83,7 +83,7 @@ class ExtractStratFactory:
             while True:
                 rgb_frame = self.getFrame()
                 feature_package = self.extract(rgb_frame)
-                if self.filter.validate(feature_package):
+                if self.filter.validate(feature_package.hand_detected):
                     break
             debug_manager.show(rgb_frame)
             return feature_package
@@ -129,7 +129,7 @@ class ExtractStratFactory:
                 future = self.feature_package_futures.get(block=True,timeout=10)  # throws queue.Empty, handled in App to avoid error
                 feature_package, frame = future.result()
 
-                if self.filter.validate(feature_package):
+                if self.filter.validate(feature_package.hand_detected):
                     break
             debug_manager.show(frame)
             return feature_package

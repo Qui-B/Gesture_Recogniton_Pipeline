@@ -22,8 +22,8 @@ class FrameFilterFactory:
             self.max_consec_drops = drop_n_consec_frames
             self.n_consec_drops = 0
 
-        def validate(self, feature_package: FeaturePackage):
-            if feature_package.hand_detected:
+        def validate(self, hand_detected):
+            if hand_detected:
                 self.n_consec_drops = 0
                 return True
 
