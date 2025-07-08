@@ -79,8 +79,8 @@ WEIGHTS_FILE_PATH = os.path.join(os.path.dirname(__file__), "PipelineModules", "
 #===========================
 #EventHandler
 #===========================
-SEND_EVENTS = True
-PIPE_NAME = 'TODO' #TODO
+SEND_ACROBAT_EVENTS = False
+PIPE_NAME = r"\\.\pipe\AcrobatGestureRecognition"
 
 CONFIDENCE_THRESHOLD = 0.94
 ACTION_COOLDOWN_S = 0.5

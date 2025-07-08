@@ -1,12 +1,12 @@
 import time
 from abc import abstractmethod, ABC
 
-from src.Config import CONFIDENCE_THRESHOLD, ACTION_COOLDOWN_S, PIPE_NAME, SEND_EVENTS
+from src.Config import CONFIDENCE_THRESHOLD, ACTION_COOLDOWN_S, PIPE_NAME, SEND_ACROBAT_EVENTS
 from src.Utility.DebugManager.DebugManager import debug_manager
 
 class EventHandlerFactory:
     @staticmethod
-    def get(send_events: bool = SEND_EVENTS):
+    def get(send_events: bool = SEND_ACROBAT_EVENTS):
         return EventHandlerFactory.AcrobatEventHandler() if send_events else EventHandlerFactory.NoEventHandler()
 
     class EventHandlerBase(ABC):
@@ -54,15 +54,21 @@ class EventHandlerFactory:
                      action_cooldown = ACTION_COOLDOWN_S,
                      pipe_name = PIPE_NAME):
             super().__init__(action_cooldown)
-            self.pipe = open(pipe_name, "wb", buffering=0)
+            try:
+                self.pipe = open(pipe_name, "wb", buffering=0) #TODO handle via exceptionhandler
+            except Exception as e:
+                print("ERROR: could not open pipe")
             self.confidence_threshold = confidence_threshold
 
         def handle(self, confidence,gesture_event): #a bit wonky maybe change it so it does not depend on the conditionorder
             if (gesture_event != 0
                     and self.cooldown_valid()
                     and confidence > self.confidence_threshold):
-                self.pipe.write(gesture_event.to_bytes(1, 'little'))
-                debug_manager.print_result(confidence, gesture_event)
+                try:
+                    self.pipe.write(gesture_event.to_bytes(1, 'little'))
+                    debug_manager.print_result(confidence, gesture_event)
+                except Exception as e:
+                    print("ERROR: could not write to pipe")
 
         def close(self):
             self.pipe.close()
