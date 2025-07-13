@@ -4,7 +4,7 @@ import torch
 import keyboard
 import cv2
 
-from src.Config import INPUT_SIZE, NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, NUM_CHANNELS_LAYER1, \
+from src.Config import TCN_INPUT_SIZE, TCN_NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, TCN_CHANNELS, \
     KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING, WEIGHTS_FILE_PATH
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
 from src.PipelineModules.EventHandler import EventHandlerFactory
@@ -28,10 +28,10 @@ class App:
         print("Extractor-module initialization succeeded")
 
         self.classifier = GraphTcn(
-            input_size=INPUT_SIZE,
-            output_size=NUM_OUTPUT_CLASSES,
+            input_size=TCN_INPUT_SIZE,
+            output_size=TCN_NUM_OUTPUT_CLASSES,
             gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
-            num_channels_layer1=NUM_CHANNELS_LAYER1,
+            num_channels_layer1=TCN_CHANNELS,
             kernel_size=KERNEL_SIZE,
             dropout=DROPOUT).to(DEVICE)
         self.classifier.load_state_dict(torch.load(WEIGHTS_FILE_PATH))

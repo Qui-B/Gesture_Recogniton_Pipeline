@@ -1,7 +1,7 @@
 import threading
 from typing import Callable
 
-from src.Config import USE_CUSTOM_MP_MULTITHREADING
+from src.Config import USE_CUSTOM_MP_MULTITHREADING, USE_FILTER
 from src.PipelineModules.Extractor.ExtractStrat import ExtractStratFactory
 
 """
@@ -14,9 +14,10 @@ class FeatureExtractor:
                  getFrame: Callable[[], any],
                  start_event: threading.Event,
                  stop_event: threading.Event,
-                 use_custom_mp_multithreading: bool = USE_CUSTOM_MP_MULTITHREADING):
+                 use_custom_mp_multithreading: bool = USE_CUSTOM_MP_MULTITHREADING,
+                 useFilter: bool = USE_FILTER):
 
-        self.extractStrat = ExtractStratFactory.get(getFrame, use_custom_mp_multithreading, start_event, stop_event)
+        self.extractStrat = ExtractStratFactory.get(getFrame, use_custom_mp_multithreading, start_event, stop_event, USE_FILTER)
 
     def spawn_thread(self):
         self.extractStrat.start()

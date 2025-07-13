@@ -2,7 +2,11 @@ from torch.nn.utils.parametrizations import weight_norm
 import torch.nn as nn
 
 #Helper classes used for the initialization of the TCN
-#Nearly the same as https://github.com/locuslab/TCN but switched Activationfunction to tanh
+
+#Nearly the same as https://github.com/locuslab/TCN
+#only modifications:
+#   switching the activation function to tanh
+#   using the DROPOUT parameter from the settings
 
 class Chomp1d(nn.Module):
     def __init__(self, chomp_size):

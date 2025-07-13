@@ -1,7 +1,7 @@
 import time
 from abc import abstractmethod, ABC
 
-from src.Config import CONFIDENCE_THRESHOLD, ACTION_COOLDOWN_S, PIPE_NAME, SEND_ACROBAT_EVENTS
+from src.Config import CONFIDENCE_THRESHOLD, GESTURE_COOLDOWN_S, PIPE_NAME, SEND_ACROBAT_EVENTS
 from src.Utility.DebugManager.DebugManager import debug_manager
 
 class EventHandlerFactory:
@@ -10,7 +10,7 @@ class EventHandlerFactory:
         return EventHandlerFactory.AcrobatEventHandler() if send_events else EventHandlerFactory.NoEventHandler()
 
     class EventHandlerBase(ABC):
-        def __init__(self,action_cooldown = ACTION_COOLDOWN_S):
+        def __init__(self, action_cooldown = GESTURE_COOLDOWN_S):
             self.action_cooldown = action_cooldown
             self.timestamp_last_action = 0  # temp val only present for the first scan
 
@@ -34,7 +34,7 @@ class EventHandlerFactory:
     class NoEventHandler(EventHandlerBase):
         def __init__(self,
                      confidence_threshold = CONFIDENCE_THRESHOLD,
-                     action_cooldown = ACTION_COOLDOWN_S,
+                     action_cooldown = GESTURE_COOLDOWN_S,
                      pipe_name = PIPE_NAME):
             super().__init__(action_cooldown)
             self.confidence_threshold = confidence_threshold
@@ -51,7 +51,7 @@ class EventHandlerFactory:
     class AcrobatEventHandler(EventHandlerBase):
         def __init__(self,
                      confidence_threshold = CONFIDENCE_THRESHOLD,
-                     action_cooldown = ACTION_COOLDOWN_S,
+                     action_cooldown = GESTURE_COOLDOWN_S,
                      pipe_name = PIPE_NAME):
             super().__init__(action_cooldown)
             try:

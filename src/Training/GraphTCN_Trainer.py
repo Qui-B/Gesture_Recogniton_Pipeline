@@ -13,11 +13,12 @@ from pathlib import Path
 
 
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
-from src.Config import (FRAMEWINDOW_LEN, NUM_OUTPUT_CLASSES, NUM_CHANNELS_LAYER1,
-                        KERNEL_SIZE, GESTURE_SAMPLE_PATH, INPUT_SIZE, DROPOUT, BATCH_SIZE,
+from src.Config import (FRAMEWINDOW_LEN, TCN_NUM_OUTPUT_CLASSES, TCN_CHANNELS,
+                        KERNEL_SIZE, GESTURE_SAMPLE_PATH, TCN_INPUT_SIZE, DROPOUT, BATCH_SIZE,
                         GCN_NUM_OUTPUT_CHANNELS, LEARNING_RATE_INIT, REL_PORTION_FOR_VALIDATION,
                         REL_PORTION_FOR_TESTING,
-                        NUM_EPOCHS, DEVICE, SLEEP_BETWEEN_SAMPLES_S, LEARNING_RATE_STEPS, LEARNING_RATE_DECAY_FACTOR, USE_ARTIFICIAL_SAMPLES, ARTIFICIAL_SAMPLES_PER_SAMPLE)
+                        NUM_EPOCHS, DEVICE, SLEEP_BETWEEN_SAMPLES_S, LEARNING_RATE_STEPS, LEARNING_RATE_DECAY_FACTOR,
+                        USE_ARTIFICIAL_SAMPLES, ARTIFICIAL_SAMPLES_PER_SAMPLE, USE_TRAINING_WEIGHTS, TRAINING_WEIGHTS)
 from src.PipelineModules.Extractor.FeatureExtractor import FeatureExtractor
 
 from src.Utility.Dataclasses import TrainingSample, FeaturePackage
@@ -25,7 +26,7 @@ from src.Utility.DebugManager.DebugManager import debug_manager
 from src.Utility.Enums import Gesture
 from src.Utility.Exceptions import WindowLengthException, UnsuccessfulCaptureException
 
-#TODO implement threading for trainer
+#TODO implement threading for trainer, more method wrapping for the trainingprocess
 
 def extract_window_from_mp4(feature_extractor, graph_TCN: GraphTcn, video_file):
     cap = cv2.VideoCapture(str(video_file))
@@ -92,7 +93,7 @@ def extract_training_data(training_Sample_path, graph_TCN, feature_extractor): #
     return sample_dict
 
 def label_to_tensor(cur_label: Gesture):
-    output_t = torch.full((NUM_OUTPUT_CLASSES,) , -1, device=DEVICE) #No second dimension next to output classes to get a 1D tensor
+    output_t = torch.full((TCN_NUM_OUTPUT_CLASSES,), -1, device=DEVICE) #No second dimension next to output classes to get a 1D tensor
     output_t[cur_label.value] = 1
     return output_t
 
@@ -143,20 +144,22 @@ class GestureDataset(Dataset):  #Wrapper class needed for using the dataloader
         return batch
 
 def main() -> None:
-    #Check if pc has a GPU on board to speed up the training process
-
     #Setup model
     model = GraphTcn(
-        input_size = INPUT_SIZE,
-        output_size = NUM_OUTPUT_CLASSES,
+        input_size = TCN_INPUT_SIZE,
+        output_size = TCN_NUM_OUTPUT_CLASSES,
         gcn_output_channels=GCN_NUM_OUTPUT_CHANNELS,
-        num_channels_layer1 = NUM_CHANNELS_LAYER1,
+        num_channels_layer1 = TCN_CHANNELS,
         kernel_size = KERNEL_SIZE,
         dropout = DROPOUT)
     model.to(DEVICE)
 
     #Setup Feature Extractor (needed for producing the trainingsData)
-    feature_extractor = FeatureExtractor(None, threading.Event(), threading.Event(), False)
+    feature_extractor = FeatureExtractor(None,
+                                         threading.Event(),
+                                         threading.Event(),
+                                         False,
+                                         False) #samples already got filtered in the SampleCapturer
 
     #Setup Datasets
     test_data, validation_data, training_data  = split_training_data(extract_training_data(GESTURE_SAMPLE_PATH, feature_extractor, feature_extractor))
@@ -172,36 +175,37 @@ def main() -> None:
     #Setup training parameters
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE_INIT)
-    scheduler = StepLR(optimizer, step_size=LEARNING_RATE_STEPS, gamma=LEARNING_RATE_DECAY_FACTOR)  # Decays LR by 50% every 10 epochs
+    scheduler = StepLR(optimizer, step_size=LEARNING_RATE_STEPS, gamma=LEARNING_RATE_DECAY_FACTOR)  # for decaying learningrate
 
     #Start training
-    train_losses, val_losses = [], []
+    #train_losses, val_losses, test_losses = [], [], [] #commented out because not needed for the current implementation but maybe in the future
     batch: list[TrainingSample] = []
 
     for epoch in range(NUM_EPOCHS):
         #training phase
         model.train()
         running_loss = 0.0
-        for batch in training_dataLoader: #only one sample in this case as BATCH_SIZE is 1
+        for batch in training_dataLoader:
             optimizer.zero_grad()
             outputs = []
             labels = []
-            for training_sample in batch:#Class: TrainingSample
-                #print(type(training_sample))
-                #print(type(training_sample.feature_packages))
+
+            for training_sample in batch: #Class: TrainingSample
                 prediction = model(*training_sample.feature_packages)
                 outputs.append(prediction)
                 labels.append(training_sample.label)
+
             outputs = torch.cat(outputs).to(DEVICE)
             labels = torch.stack(labels).to(DEVICE)
-            #print(str(outputs.shape))
-            #print(str(labels))
             loss = criterion(outputs,labels)
             loss.backward()
             optimizer.step()
             running_loss += loss.item() * len(labels)
+
         train_loss = running_loss / len(training_dataLoader.dataset)
-        train_losses.append(train_loss)
+        #train_losses.append(train_loss)
+        scheduler.step()
+
         #validation phase
         model.eval()
         running_loss = 0.0
@@ -210,20 +214,21 @@ def main() -> None:
             for batch in validation_dataLoader:
                 outputs = []
                 labels = []
-                for training_sample in batch:  # Class: TrainingSample
+
+                for training_sample in batch:
                     prediction = model(*training_sample.feature_packages)
                     outputs.append(prediction)
                     labels.append(training_sample.label)
+
                 outputs = torch.cat(outputs).to(DEVICE)
                 labels = torch.stack(labels).to(DEVICE)
                 loss = criterion(outputs, labels)
                 running_loss += loss.item() * len(labels)
+
         val_loss = running_loss / len(validation_dataLoader.dataset)
-        val_losses.append(val_loss)
-        scheduler.step()
-        correct_preds = (outputs.argmax(dim=1) == labels).sum().item()
-        accuracy = correct_preds / len(labels)
-        current_lr = optimizer.param_groups[0]['lr']
+        #val_losses.append(val_loss)
+
+        current_lr = optimizer.param_groups[0]['lr'] #get current learning rate for outprint
         print(f"Epoch {epoch + 1} learning rate: {current_lr:.6f}")
         print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss:.4f}, Validation loss: {val_loss:.4f}")
     torch.save(model.state_dict(), "../PipelineModules/Classificator/trained_weights.pth")
