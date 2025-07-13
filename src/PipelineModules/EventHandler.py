@@ -41,8 +41,8 @@ class EventHandlerFactory:
 
         def handle(self, confidence, gesture_event): #a bit wonky maybe change it so it does not depend on the conditionorder
             if (gesture_event != 0
-                    and self.cooldown_valid()
-                    and confidence > self.confidence_threshold):
+                    and confidence > self.confidence_threshold
+                        and self.cooldown_valid()):
                 debug_manager.print_result(confidence, gesture_event)
 
         def close(self):
@@ -55,15 +55,15 @@ class EventHandlerFactory:
                      pipe_name = PIPE_NAME):
             super().__init__(action_cooldown)
             try:
-                self.pipe = open(pipe_name, "wb", buffering=0) #TODO handle via exceptionhandler
+                self.pipe = open(pipe_name, "wb", buffering=0) #TODO handle via debughandler
             except Exception as e:
                 print("ERROR: could not open pipe")
             self.confidence_threshold = confidence_threshold
 
         def handle(self, confidence,gesture_event): #a bit wonky maybe change it so it does not depend on the conditionorder
             if (gesture_event != 0
-                    and self.cooldown_valid()
-                    and confidence > self.confidence_threshold):
+                    and confidence >= self.confidence_threshold
+                        and self.cooldown_valid()):
                 try:
                     self.pipe.write(gesture_event.to_bytes(1, 'little'))
                     debug_manager.print_result(confidence, gesture_event)
