@@ -1,6 +1,8 @@
 from torch.nn.utils.parametrizations import weight_norm
 import torch.nn as nn
 
+from src.Config import DROPOUT
+
 #Helper classes used for the initialization of the TCN
 
 #Nearly the same as https://github.com/locuslab/TCN
@@ -18,7 +20,7 @@ class Chomp1d(nn.Module):
 
 
 class TemporalBlock(nn.Module):
-    def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2):
+    def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=DROPOUT):
         super(TemporalBlock, self).__init__()
         self.conv1 = weight_norm(nn.Conv1d(n_inputs, n_outputs, kernel_size,
                                            stride=stride, padding=padding, dilation=dilation))
@@ -51,7 +53,7 @@ class TemporalBlock(nn.Module):
 
 
 class TemporalConvNet(nn.Module):
-    def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
+    def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=DROPOUT):
         super(TemporalConvNet, self).__init__()
         layers = []
         num_levels = len(num_channels)

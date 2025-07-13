@@ -45,6 +45,9 @@ def extract_window_from_mp4(feature_extractor, graph_TCN: GraphTcn, video_file):
             raise UnsuccessfulCaptureException
 
         feature_package = feature_extractor.extractStrat.extract(frame)
+        if USE_TRAINING_WEIGHTS:
+            feature_package = FeaturePackage(feature_package.lm_coordinates * TRAINING_WEIGHTS[frame_ind], feature_package.hand_detected) #TESTING TODO maybe remove
+
         # print("Vector: " + str(feature_package.lm_coordinates)) #TODO maybe implement as setting
         #
         # avg_abs_value = feature_package.lm_coordinates.abs().mean()
@@ -122,7 +125,7 @@ def split_training_data(sample_dict):
         training_list.extend(cur_samples)
     print("\nDataset split:")
     print("==========================================")
-    print("{}% Test samples with length: {}".format((REL_PORTION_FOR_TESTING * 100), len(validation_list)))
+    print("{}% Test samples with length: {}".format((REL_PORTION_FOR_TESTING * 100), len(test_list)))
     print("{}% Validation samples with length: {}".format((REL_PORTION_FOR_VALIDATION*100), len(validation_list)))
     print("{}% Training samples with length: {}".format(((1-(REL_PORTION_FOR_TESTING+REL_PORTION_FOR_VALIDATION))*100), len(training_list)))
 
@@ -168,9 +171,22 @@ def main() -> None:
     validation_dataset = GestureDataset(validation_data)
     training_dataset = GestureDataset(training_data)
 
-    test_dataLoader = DataLoader(test_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
-    validation_dataLoader = DataLoader(validation_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn)
-    training_dataLoader = DataLoader(training_dataset, BATCH_SIZE,  shuffle=True, collate_fn=GestureDataset.collate_fn) #shuffle because datasets are still grouped in labels
+    if len(test_dataset) > 0:
+        test_dataLoader = DataLoader(test_dataset,
+                                     1, #no batching as the testset is realtively small
+                                     shuffle=True,#shuffle because datasets are still grouped in labels
+                                     collate_fn=GestureDataset.collate_fn)
+    if len(validation_dataset) > 0:
+        validation_dataLoader = DataLoader(validation_dataset,
+                                           BATCH_SIZE,
+                                           shuffle=True,
+                                           collate_fn=GestureDataset.collate_fn)
+
+    training_dataLoader = DataLoader(training_dataset,
+                                     BATCH_SIZE,
+                                     shuffle=True,
+                                     collate_fn=GestureDataset.collate_fn)
+
 
     #Setup training parameters
     criterion = nn.CrossEntropyLoss()
@@ -231,6 +247,29 @@ def main() -> None:
         current_lr = optimizer.param_groups[0]['lr'] #get current learning rate for outprint
         print(f"Epoch {epoch + 1} learning rate: {current_lr:.6f}")
         print(f"Epoch {epoch + 1}/{NUM_EPOCHS} - Train loss: {train_loss:.4f}, Validation loss: {val_loss:.4f}")
+
+    #final evaluation on test set
+    running_loss = 0.0
+    with torch.no_grad():
+        for batch in test_dataLoader:
+            outputs = []
+            labels = []
+
+            for training_sample in batch:
+                prediction = model(*training_sample.feature_packages)
+                outputs.append(prediction)
+                labels.append(training_sample.label)
+
+            outputs = torch.cat(outputs).to(DEVICE)
+            labels = torch.stack(labels).to(DEVICE)
+            loss = criterion(outputs, labels)
+            running_loss += loss.item() * len(labels)
+
+        test_loss = running_loss / len(test_dataLoader.dataset)
+        #test_losses.append(test_loss)
+        print(f"Final loss on the test set: {test_loss:.4f}")
+
+
     torch.save(model.state_dict(), "../PipelineModules/Classificator/trained_weights.pth")
 
 if __name__ == "__main__":
