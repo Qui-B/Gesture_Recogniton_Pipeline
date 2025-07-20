@@ -37,7 +37,7 @@ class App:
         self.classifier.load_state_dict(torch.load(WEIGHTS_FILE_PATH))
         print("Classifier-module initialization succeeded")
 
-        self.event_handler = EventHandlerFactory.get()
+        self.event_handler = EventHandlerFactory.get(self.stop_event)
         print("Eventhandler-module initialization succeeded")
 
     def warm_up(self):
@@ -68,11 +68,8 @@ class App:
             debug_manager.print_framedrops()
             if keyboard.is_pressed('esc'):
                 print("ESC pressed shutting down...")
-                self.stop_event.set() #stops capturer and extractor
-                self.event_handler.close()
-
+                self.stop_event.set() #stops capturer,extractor and event_handler stop listener
                 debug_manager.close()
-
         print("classifier stopped")
 
 
