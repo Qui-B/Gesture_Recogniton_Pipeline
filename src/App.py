@@ -5,7 +5,7 @@ import keyboard
 import cv2
 
 from src.Config import TCN_INPUT_SIZE, TCN_NUM_OUTPUT_CLASSES, GCN_NUM_OUTPUT_CHANNELS, TCN_CHANNELS, \
-    KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING, WEIGHTS_FILE_PATH
+    KERNEL_SIZE, DROPOUT, DEVICE, USE_CUSTOM_MP_MULTITHREADING, WEIGHTS_FILE_PATH, GESTURE_BIAS_ADJUSTMENT
 from src.PipelineModules.Classificator.GraphTCN import GraphTcn
 from src.PipelineModules.EventHandler import EventHandlerFactory
 from src.PipelineModules.Extractor.FeatureExtractor import FeatureExtractor
@@ -56,13 +56,9 @@ class App:
                 feature_package = self.extractor.get()  # throws Queue.Empty
                 with torch.no_grad():
                     result_t: torch.Tensor = self.classifier(feature_package)
-                    result_val, result_class = torch.max(result_t, dim=1)
+                    biased_result_t = result_t + GESTURE_BIAS_ADJUSTMENT
+                    result_val, result_class = torch.max(biased_result_t, dim=1)
                     self.event_handler.handle(result_val.item(), result_class.item())
-
-                    # if result_class != Gesture.Nothing and result_val > 0.6: TODO delete one day...
-                    #     print("Classification Result is " + result_class.name)
-                    #     print("Tensor: " + str(result_t))
-                    #     print("")
             except queue.Empty:
                 debug_manager.log_framedrop("App.startClassification() -queue.Empty")
             debug_manager.print_framedrops()
@@ -83,6 +79,3 @@ class App:
         self.start_event.set()
         self.warm_up()
         self.startClassification()
-
-
-

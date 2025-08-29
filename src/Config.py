@@ -77,6 +77,12 @@ EDGE_INDEX = torch.tensor([
 
 WEIGHTS_FILE_PATH = os.path.join(os.path.dirname(__file__), "PipelineModules", "Classificator", "trained_weights.pth")
 
+#manual bias adjustment (gets added on the classification result)
+GESTURE_BIAS_ADJUSTMENT = torch.tensor([
+#Nothing        ScrollUp       ScrollDown     SwipeLeft      SwipeRight     ZoomIn     ZoomOut
+0,              0,             0,             0,             0,             0,         -0.0035,
+], dtype=torch.float32, device=DEVICE)
+
 #===========================
 #EventHandler
 #===========================
