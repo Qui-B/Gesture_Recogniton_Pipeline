@@ -13,7 +13,7 @@ from src.Utility.DebugManager.DebugManager import debug_manager
 ESC = 27
 VIDEONAME = "sample.avi"
 
-#TODO make a generic solution that takles a consumer as lambda so filter and capturre can be done with one method
+#TODO make a generic solution that takles a consumer as lambda so filter/capture are more modular
 
 
 def filterVid():
@@ -75,16 +75,18 @@ def main() -> None:
         while not stop_event.is_set():
             try:
                 frame = frame_capturer.get()
+                #out.write(frame) #TODO uncomment when recording testSamples XNXD ~never again... t2
                 RGB_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mp_result = mediapipe.process(RGB_frame)
 
 
+                #out.write(frame)
+                if mp_result.multi_hand_landmarks:
+                    for result in mp_result.multi_hand_landmarks: #multi hands can still be none
+                        debug_manager.render(frame, result)
                 out.write(frame)
-                if mp_result.multi_hand_landmarks: #multi hands can still be none
-                    debug_manager.render(frame, mp_result.multi_hand_landmarks[0])
                 debug_manager.show(frame)
                 debug_manager.print_framedrops()
-
             except Exception:
                 debug_manager.log_framedrop("SampleCapturer.main()")
             debug_manager.print_framedrops()
