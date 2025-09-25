@@ -11,3 +11,7 @@ src/.idea/
 #pycache
 __pycache__/
 *.pyc
+
+#recorded file-paths of sample recorder
+src\Training\sample.avi
+src\Training\sample_filtered.avi
