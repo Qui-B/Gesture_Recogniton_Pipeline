@@ -3,7 +3,7 @@ title: Project Description
 
 ---
 
-#TODO tl;tr, Benchmark, adobe acrobat version addn: 2025.001.20693 | 64-Bit, pipeline 5 error, important config changes before running (Config.py | device, camera)
+#TODO tl;tr, Benchmark, adobe acrobat version addn: 2025.001.20693 | 64-Bit, pipeline 5 error, important config changes before running (Config.py | device, camera), Python 3.12 needed, win redistributables needed
 
 # Project Description
 This repo contains the src files and builds for an Adobe Acrobat Plugin, created by using the [Adobe Acrobat SDK 2021](https://opensource.adobe.com/dc-acrobat-sdk-docs/acrobatsdk). The Plugin enables motion-based hand gestures for navigating through documents. 
