@@ -31,7 +31,7 @@ Currently the default path is:
 \Program Files\Adobe\Acrobat DC\Acrobat\plug_ins
 ```
 6. Start adobe acrobat reader 
-7. Navigate to 'Menu (top left corner) -> Allgemein'
+7. Navigate to 'Menu (top left corner) -> General'
 8. Untick the Option "Use only certified plugins" on the bottom of the Menu.
 9. Navigate to 'Menu -> Plug-ins -> Gesture Recognition' and click on the desired starting option:
 > - Debug: Displays bulky debug information used for development
